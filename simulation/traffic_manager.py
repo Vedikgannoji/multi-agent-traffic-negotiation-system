@@ -9,21 +9,24 @@ from pathlib import Path
 
 # Support both standalone and package imports
 try:
-    from simulation.vehicle import Vehicle
+    from simulation.vehicle import Vehicle, VehicleState
     from simulation.road import Road
+    from simulation.intersection import Intersection
 except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))
-    from vehicle import Vehicle
+    from vehicle import Vehicle, VehicleState
     from road import Road
+    from intersection import Intersection
 
 # Minimum gap (meters) required between two vehicles in the same lane
 MIN_GAP = 10.0
 
 
 class TrafficManager:
-    def __init__(self, road: Road):
+    def __init__(self, road: Road, intersection: Intersection = None):
         self.road = road
         self.vehicles: list[Vehicle] = []
+        self.intersection = intersection
         self._next_id = 1  # auto-increment vehicle IDs
 
     # ------------------------------------------------------------------
@@ -57,16 +60,34 @@ class TrafficManager:
     def update(self, dt: float = 1.0):
         """
         Advance the simulation by one time step (dt seconds).
-        1. Move every vehicle forward.
-        2. Remove vehicles that have left the road.
-        3. Resolve simple same-lane overlaps.
+        1. Update intersection logic for each vehicle.
+        2. Move vehicles based on their state.
+        3. Remove vehicles that have left the road.
+        4. Resolve simple same-lane overlaps.
         """
+        # Update intersection logic first
+        if self.intersection:
+            for vehicle in self.vehicles:
+                action = self.intersection.update_vehicle(vehicle)
+                
+                # Apply action to vehicle
+                if action == 'stop':
+                    vehicle.slow_down(0.0)  # Stop
+                elif action == 'slow':
+                    vehicle.slow_down(5.0)  # Slow to 5 m/s
+                elif action == 'cross':
+                    vehicle.speed_up()  # Resume normal speed
+                elif action == 'continue':
+                    vehicle.speed_up()  # Resume normal speed
+        
+        # Move all vehicles
         for vehicle in self.vehicles:
             vehicle.move(dt)
 
         # Remove vehicles that drove off the end of the road
         self.vehicles = [v for v in self.vehicles if self.road.is_valid_position(v.position)]
 
+        # Basic collision avoidance (still needed for same-lane vehicles)
         self._resolve_collisions()
 
     # ------------------------------------------------------------------
@@ -108,6 +129,7 @@ class TrafficManager:
                 "lane": v.lane,
                 "position": round(v.position, 1),
                 "speed": round(v.speed, 1),
+                "state": v.state,
             }
             for v in sorted(self.vehicles, key=lambda v: v.position, reverse=True)
         ]

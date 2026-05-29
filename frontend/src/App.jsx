@@ -1,8 +1,16 @@
-import './App.css'
-import TrafficVisualization from './components/TrafficVisualization'
+import './App.css';
+import TrafficSimulation from './components/TrafficSimulation';
+import ControlPanel from './components/ControlPanel';
 
-function App() {
-  return <TrafficVisualization />
+export default function App() {
+  return (
+    <div className="app">
+      <div className="app-sim">
+        <TrafficSimulation />
+      </div>
+      <div className="app-panel">
+        <ControlPanel />
+      </div>
+    </div>
+  );
 }
-
-export default App

@@ -1,0 +1,121 @@
+/* ── Simulation panel (left column) ─────────────────────────────────────── */
+
+.sim-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: transparent;
+  color: #e0e0e0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Header */
+.sim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1.25rem;
+  background: rgba(20, 20, 30, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.sim-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.3px;
+  margin: 0 0 2px;
+}
+
+.sim-subtitle {
+  font-size: 0.75rem;
+  color: #666;
+  margin: 0;
+}
+
+.sim-header-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #44ff88;
+  background: rgba(68, 255, 136, 0.1);
+  border: 1px solid rgba(68, 255, 136, 0.25);
+  border-radius: 5px;
+  padding: 0.3rem 0.65rem;
+  white-space: nowrap;
+}
+
+/* Canvas wrapper — fills remaining height */
+.sim-canvas-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  min-height: 0; /* allow flex shrink */
+}
+
+.sim-svg {
+  width: 100%;
+  height: 100%;
+  max-width: 560px;
+  max-height: 560px;
+  border-radius: 10px;
+  background: #0a0a0a;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Offline screen */
+.sim-offline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: transparent;
+}
+
+.sim-offline-box {
+  text-align: center;
+  padding: 2rem;
+}
+
+.sim-offline-icon {
+  font-size: 2.5rem;
+  opacity: 0.4;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.sim-offline-box h2 {
+  font-size: 1.25rem;
+  color: #fff;
+  margin: 0 0 0.5rem;
+}
+
+.sim-offline-box p {
+  color: #666;
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem;
+}
+
+.sim-offline-box code {
+  display: inline-block;
+  padding: 0.6rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: #4a9eff;
+}
+
+/* Vehicle state transitions */
+.vehicle rect { transition: fill 0.25s ease; }
+
+/* Collided vehicles: steady red, no flicker */
+.vehicle-colliding {
+  opacity: 0.9;
+}

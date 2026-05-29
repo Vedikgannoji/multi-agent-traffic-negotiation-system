@@ -1,0 +1,243 @@
+/* ── Control Panel ───────────────────────────────────────────────────────── */
+
+.cp {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #e0e0e0;
+  font-size: 0.8125rem;
+}
+
+/* Header */
+.cp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 0 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.25rem;
+  flex-shrink: 0;
+}
+
+.cp-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.2px;
+}
+
+.cp-pill {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+.cp-pill--running {
+  background: rgba(68, 255, 136, 0.15);
+  color: #44ff88;
+  border: 1px solid rgba(68, 255, 136, 0.3);
+}
+
+.cp-pill--paused {
+  background: rgba(255, 184, 74, 0.15);
+  color: #ffb84a;
+  border: 1px solid rgba(255, 184, 74, 0.3);
+}
+
+/* Sections */
+.cp-section {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.cp-section--last {
+  border-bottom: none;
+  flex: 1;
+}
+
+.cp-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #555;
+  margin: 0 0 0.5rem;
+}
+
+.cp-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+
+.cp-count {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #4a9eff;
+}
+
+.cp-hint {
+  font-size: 0.7rem;
+  color: #444;
+  text-align: center;
+  margin: 0.4rem 0 0;
+}
+
+/* Button rows */
+.cp-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.cp-row--3 {
+  gap: 0.4rem;
+}
+
+/* Base button */
+.cp-btn {
+  flex: 1;
+  padding: 0.55rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ccc;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.cp-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.cp-btn:active:not(:disabled) { transform: translateY(0); }
+
+.cp-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Half-width */
+.cp-btn--half { flex: 1; }
+
+/* Colour variants */
+.cp-btn--amber {
+  border-color: rgba(255, 184, 74, 0.3);
+  background: rgba(255, 184, 74, 0.08);
+  color: #ffb84a;
+}
+.cp-btn--amber:hover:not(:disabled) {
+  background: rgba(255, 184, 74, 0.16);
+  border-color: rgba(255, 184, 74, 0.5);
+}
+
+.cp-btn--green {
+  border-color: rgba(68, 255, 136, 0.3);
+  background: rgba(68, 255, 136, 0.08);
+  color: #44ff88;
+}
+.cp-btn--green:hover:not(:disabled) {
+  background: rgba(68, 255, 136, 0.16);
+  border-color: rgba(68, 255, 136, 0.5);
+}
+
+.cp-btn--red {
+  border-color: rgba(255, 80, 80, 0.3);
+  background: rgba(255, 80, 80, 0.08);
+  color: #ff6060;
+}
+.cp-btn--red:hover:not(:disabled) {
+  background: rgba(255, 80, 80, 0.16);
+  border-color: rgba(255, 80, 80, 0.5);
+}
+
+/* Speed buttons */
+.cp-btn--speed {
+  font-size: 0.8rem;
+  padding: 0.5rem 0;
+}
+
+.cp-btn--speed-active {
+  background: rgba(74, 158, 255, 0.18);
+  border-color: rgba(74, 158, 255, 0.5);
+  color: #4a9eff;
+}
+
+/* Slider */
+.cp-slider {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  display: block;
+}
+
+.cp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4a9eff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 6px rgba(74, 158, 255, 0.5);
+  cursor: pointer;
+}
+
+.cp-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4a9eff;
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+.cp-slider-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: #444;
+  margin-top: 0.3rem;
+}
+
+/* Metrics */
+.cp-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cp-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+}
+
+.cp-metric-label {
+  font-size: 0.775rem;
+  color: #666;
+}
+
+.cp-metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+}

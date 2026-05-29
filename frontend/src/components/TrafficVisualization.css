@@ -17,9 +17,10 @@
 
 .stats {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1rem;
+  flex-wrap: wrap;
 }
 
 .stats span {
@@ -29,7 +30,8 @@
   backdrop-filter: blur(10px);
 }
 
-.road-container {
+/* 4-Way Intersection Container */
+.fourway-container {
   background: white;
   border-radius: 16px;
   padding: 2rem;
@@ -37,47 +39,115 @@
   margin-bottom: 2rem;
 }
 
-.road {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.lane {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.lane-label {
-  min-width: 80px;
-  font-weight: 600;
-  color: #4a5568;
-  font-size: 0.9rem;
-}
-
-.lane-track {
+.fourway-view {
   position: relative;
-  flex: 1;
-  height: 60px;
-  background: linear-gradient(to bottom, #e2e8f0 0%, #cbd5e0 50%, #e2e8f0 100%);
-  border-radius: 8px;
-  border: 2px dashed #a0aec0;
-  overflow: hidden;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.vehicle {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 2rem;
-  transition: left 0.5s linear;
+.intersection-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Road segments */
+.road-segment {
+  fill: #cbd5e0;
+  stroke: #a0aec0;
+  stroke-width: 2;
+  stroke-dasharray: 10, 5;
+}
+
+/* Intersection box */
+.intersection-box {
+  stroke: #4a5568;
+  stroke-width: 3;
+  transition: all 0.3s ease;
+}
+
+.intersection-box.available {
+  fill: rgba(72, 187, 120, 0.2);
+  stroke: #48bb78;
+}
+
+.intersection-box.busy {
+  fill: rgba(245, 101, 101, 0.3);
+  stroke: #f56565;
+  animation: pulse-svg 1s infinite;
+}
+
+@keyframes pulse-svg {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Vehicle circles */
+.vehicle-circle {
+  transition: all 0.5s linear;
   cursor: pointer;
-  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
 }
 
-.vehicle:hover {
-  transform: translate(-50%, -50%) scale(1.2);
+.vehicle-circle:hover {
+  r: 8;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.5));
+}
+
+/* Direction labels */
+.direction-labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.direction-labels > div {
+  position: absolute;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.label-north {
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.label-south {
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.label-east {
+  right: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.label-west {
+  left: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Info Panels */
+.info-panels {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .info-panels {
+    grid-template-columns: 1fr;
+  }
 }
 
 .vehicle-list {
@@ -93,26 +163,148 @@
   color: #2d3748;
 }
 
+.state-summary {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.state-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: white;
+}
+
+.state-badge.state-moving {
+  background: #3b82f6;
+}
+
+.state-badge.state-waiting {
+  background: #fbbf24;
+}
+
+.state-badge.state-crossing {
+  background: #10b981;
+}
+
+.turn-summary {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.turn-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: #6b7280;
+  color: white;
+}
+
 .vehicle-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .vehicle-card {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  gap: 0.3rem;
+  padding: 0.75rem;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  transition: transform 0.2s;
+}
+
+.vehicle-card:hover {
+  transform: translateY(-2px);
+}
+
+.vehicle-card.state-moving {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.vehicle-card.state-waiting {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.vehicle-card.state-crossing {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
 }
 
 .vehicle-id {
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: 1rem;
+}
+
+/* Intersection Info Panel */
+.intersection-info {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.intersection-info h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #2d3748;
+}
+
+.intersection-info h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #4a5568;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.info-row:last-of-type {
+  border-bottom: none;
+}
+
+.info-row span:first-child {
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.info-row span:last-child {
+  color: #2d3748;
+}
+
+.utilization-bar {
+  width: 100%;
+  height: 24px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.utilization-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  transition: width 0.5s ease;
 }
 
 .error-state {
