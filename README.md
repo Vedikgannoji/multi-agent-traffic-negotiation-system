@@ -1,120 +1,170 @@
 # Multi-Agent Traffic Negotiation Simulator
 
-An autonomous intersection management simulator where vehicles act as intelligent agents that coordinate intersection access through communication and negotiation instead of relying on traditional traffic signals.
+<p align="center">
+  Multi-agent traffic simulation platform for autonomous vehicle coordination, communication, negotiation, and reinforcement learning.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-Backend-blue" />
+  <img src="https://img.shields.io/badge/FastAPI-API-green" />
+  <img src="https://img.shields.io/badge/React-Frontend-61DAFB" />
+  <img src="https://img.shields.io/badge/Multi--Agent-Systems-orange" />
+  <img src="https://img.shields.io/badge/Reinforcement-Learning-purple" />
+</p>
 
 ---
 
 ## Overview
 
-Traditional intersections depend on traffic lights and fixed timing systems to regulate vehicle movement. While effective, these systems cannot adapt dynamically to changing traffic conditions and often introduce unnecessary delays.
+Urban traffic congestion continues to impact mobility, fuel efficiency, economic productivity, and environmental sustainability. Traditional traffic management systems often rely on centralized control mechanisms and fixed policies that struggle to adapt to rapidly changing traffic conditions.
 
-This project explores an alternative approach where vehicles behave as autonomous agents capable of sharing information, coordinating actions, and negotiating access to an intersection.
+This project explores a decentralized alternative where autonomous vehicles operate as intelligent agents capable of perceiving their environment, communicating with nearby agents, negotiating decisions, and learning cooperative behaviors.
 
-The simulator provides a controlled environment for studying:
-
-* Autonomous traffic coordination
-* Vehicle-to-Vehicle (V2V) communication
-* Multi-agent decision making
-* Collision avoidance strategies
-* Traffic efficiency and throughput
-* Intelligent transportation systems
+The simulator serves as a platform for studying how autonomous vehicles can coordinate safely and efficiently while balancing individual objectives with collective traffic goals.
 
 ---
 
-## Problem Statement
+## Key Capabilities
 
-Conventional traffic control systems face several limitations:
+### Autonomous Vehicle Agents
 
-* Fixed traffic signal timings
-* Unnecessary waiting during low traffic conditions
-* Limited adaptability to real-time traffic flow
-* Inefficient utilization of intersection space
+Each vehicle is modeled as an independent agent with:
 
-The goal of this project is to investigate whether intelligent autonomous agents can coordinate intersection access more efficiently while maintaining safety.
+* Position awareness
+* Speed and motion control
+* Direction and destination tracking
+* Waiting time monitoring
+* Priority handling
+* State-based behavior
 
----
+### Agent Communication
 
-## How It Works
-
-The simulator models a four-way road intersection where vehicles are represented as autonomous agents.
-
-Each agent maintains information such as:
+Agents exchange information about:
 
 * Position
 * Speed
 * Direction
-* Destination
-* Waiting time
-* Priority
-* Internal state
+* Intent
+* Local traffic conditions
 
-Agents progress through a state-based lifecycle:
+Enabling cooperative and decentralized decision-making.
+
+### Negotiation Framework
+
+Vehicles can coordinate actions through negotiation mechanisms that support:
+
+* Conflict resolution
+* Priority determination
+* Cooperative yielding
+* Resource sharing
+* Safe traffic movement
+
+### Reinforcement Learning Environment
+
+The simulator is designed as a training environment for learning:
+
+* Efficient navigation policies
+* Cooperative strategies
+* Congestion reduction behaviors
+* Safety-aware decision making
+* Traffic optimization techniques
+
+---
+
+## System Architecture
+
+```text
+┌─────────────────────────────┐
+│     Traffic Environment     │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│     Vehicle Agents          │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│     Communication Layer     │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│     Negotiation Engine      │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│ Reinforcement Learning Layer│
+└─────────────────────────────┘
+```
+
+---
+
+## Agent Lifecycle
 
 ```text
 APPROACHING
-    ↓
+      ↓
 NEGOTIATING
-    ↓
+      ↓
 WAITING
-    ↓
+      ↓
 CROSSING
-    ↓
+      ↓
 EXITED
 ```
 
-The system continuously updates vehicle movement, intersection occupancy, safety constraints, and performance metrics.
+Each agent continuously evaluates its environment and updates its behavior according to surrounding traffic conditions.
 
 ---
 
 ## Features
 
-### Autonomous Vehicle Agents
+### Simulation Engine
 
-* Agent-based vehicle representation
-* State-driven behavior model
-* Waiting time and priority tracking
-* Real-time state transitions
-
-### Intersection Simulation
-
-* Four-way intersection environment
-* Continuous vehicle spawning
-* Dynamic traffic density control
-* Vehicle movement and path management
-
-### Safety Monitoring
-
+* Real-time traffic simulation
+* Dynamic vehicle generation
+* Agent lifecycle management
+* Safety monitoring
 * Collision detection
-* Safe crossing tracking
-* Passing accuracy metrics
+* Configurable traffic density
+
+### Multi-Agent Framework
+
+* Autonomous vehicle agents
+* State-driven behavior model
+* Decentralized coordination
+* Negotiation support
+* Extensible communication architecture
+
+### Analytics & Monitoring
+
 * Traffic flow statistics
-
-### Visualization Dashboard
-
-* Real-time simulation rendering
-* Agent state monitoring
-* Traffic metrics
 * Safety metrics
+* Agent state monitoring
+* Throughput analysis
+* Real-time dashboard
+
+### Interactive Dashboard
+
+* Live simulation visualization
+* Agent monitoring
+* Traffic analytics
+* Safety analytics
 * Simulation controls
 
 ---
 
 ## Technology Stack
 
-### Backend
-
-* Python
-* FastAPI
-
-### Frontend
-
-* React
-* Vite
-
-### Simulation
-
-* Custom traffic simulation engine
-* Agent-based vehicle model
+| Layer      | Technology                       |
+| ---------- | -------------------------------- |
+| Backend    | Python, FastAPI                  |
+| Frontend   | React, Vite                      |
+| Simulation | Custom Traffic Engine            |
+| Agents     | Autonomous Agent Model           |
+| AI         | Reinforcement Learning           |
 
 ---
 
@@ -139,7 +189,7 @@ Start backend:
 uvicorn backend.main:app --reload
 ```
 
-Backend runs on:
+Backend URL:
 
 ```text
 http://localhost:8000
@@ -153,7 +203,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs on:
+Frontend URL:
 
 ```text
 http://localhost:5173
@@ -161,46 +211,68 @@ http://localhost:5173
 
 ---
 
-## Usage
+## Running the Simulator
 
-1. Start both backend and frontend servers.
-2. Open the frontend in a browser.
-3. Adjust traffic density using the control panel.
-4. Observe vehicle behavior at the intersection.
-5. Monitor traffic and safety metrics in real time.
+1. Start the backend server.
+2. Start the frontend application.
+3. Open the dashboard in your browser.
+4. Configure traffic density.
+5. Observe agent behavior and system metrics in real time.
 
 ---
 
 ## Metrics
 
-The simulator tracks:
-
 ### Traffic Metrics
 
-* Active vehicles
-* Waiting vehicles
-* Crossing vehicles
-* Total spawned vehicles
+* Active Vehicles
+* Waiting Vehicles
+* Crossing Vehicles
+* Throughput
+* Total Spawned Vehicles
 
 ### Safety Metrics
 
+* Safe Crossings
+* Failed Crossings
 * Collisions
-* Safe crossings
-* Failed crossings
-* Passing accuracy
+* Passing Accuracy
+
+### Agent Metrics
+
+* Agent States
+* Waiting Times
+* Negotiation Statistics
+* Communication Statistics
 
 ---
 
 ## Research Applications
 
-This project can be used to study:
+This platform can be used to study:
 
-* Autonomous traffic management
-* Multi-agent systems
-* Intelligent transportation systems
-* Cooperative vehicle behavior
-* Traffic optimization strategies
-* Reinforcement learning environments
+* Multi-Agent Systems
+* Autonomous Vehicles
+* Vehicle-to-Vehicle Communication
+* Reinforcement Learning
+* Cooperative Decision Making
+* Distributed Coordination
+* Intelligent Transportation Systems
+* Traffic Optimization
+
+---
+
+## Future Extensions
+
+The architecture is designed to support a wide range of traffic scenarios, including:
+
+* Lane-change negotiation
+* Highway merging
+* Roundabouts
+* Multi-intersection networks
+* Urban road networks
+* Emergency vehicle prioritization
+* Large-scale agent coordination
 
 ---
 
