@@ -69,13 +69,13 @@ class SimulationSpeedRequest(BaseModel):
 def simulation_loop():
     """
     Background simulation loop.
-    Runs at a fixed 10 Hz tick rate regardless of simulation_speed.
+    Runs at a fixed 60 Hz tick rate regardless of simulation_speed.
     simulation_speed scales the dt passed to manager.update() so vehicles
     move faster/slower without changing the tick frequency.
     """
     global simulation_running, simulation_paused, TARGET_VEHICLE_COUNT
 
-    TICK_HZ   = 10          # fixed tick rate
+    TICK_HZ   = 60          # fixed tick rate - increased from 10 Hz for smooth movement
     TICK_SEC  = 1.0 / TICK_HZ
 
     # Spawn initial vehicles with small gaps between them

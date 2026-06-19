@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import './TrafficSimulation.css';
 
 const API_URL = 'http://localhost:8000';
-const POLL_INTERVAL = 1000;
+const POLL_INTERVAL = 100; // Reduced from 1000ms to 100ms for smoother updates
 
 // ─── Interpolation engine ────────────────────────────────────────────────────
 class VehicleInterpolator {
@@ -52,8 +52,8 @@ class VehicleInterpolator {
     const out = [];
     for (const [, v] of this.vehicles) {
       const t      = Math.min((currentTime - v.lastUpdate) / POLL_INTERVAL, 1.0);
-      const eased  = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      v.currentPosition = v.prevPosition + (v.targetPosition - v.prevPosition) * eased;
+      // Use linear interpolation for smoother continuous motion
+      v.currentPosition = v.prevPosition + (v.targetPosition - v.prevPosition) * t;
       v.currentAgentState = t > 0.5 ? v.targetAgentState : v.prevAgentState;
       out.push({ 
         id: v.id, 

@@ -183,8 +183,8 @@ class FourWayTrafficManager:
                     dt=dt
                 )
 
-        # 6. Physics sub-steps
-        SUB_STEP = 0.05
+        # 6. Physics sub-steps - reduced substep size for smoother motion at 60 Hz
+        SUB_STEP = 0.0166  # ~1/60 second, matching the new tick rate
         steps    = max(1, round(dt / SUB_STEP))
         sub_dt   = dt / steps
         for _ in range(steps):
