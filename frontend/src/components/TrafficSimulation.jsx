@@ -16,8 +16,8 @@ class VehicleInterpolator {
         const ex = this.vehicles.get(vehicle.id);
         ex.prevPosition    = ex.currentPosition;
         ex.targetPosition  = vehicle.position;
-        ex.prevState       = ex.currentState;
-        ex.targetState     = vehicle.state;
+        ex.prevAgentState  = ex.currentAgentState;
+        ex.targetAgentState = vehicle.agent_state;
         ex.lastUpdate      = timestamp;
         ex.source          = vehicle.source;
         ex.destination     = vehicle.destination;
@@ -27,18 +27,18 @@ class VehicleInterpolator {
       } else {
         this.vehicles.set(vehicle.id, {
           id: vehicle.id,
-          prevPosition:   vehicle.position,
-          currentPosition: vehicle.position,
-          targetPosition: vehicle.position,
-          prevState:      vehicle.state,
-          currentState:   vehicle.state,
-          targetState:    vehicle.state,
-          source:         vehicle.source,
-          destination:    vehicle.destination,
-          turn_type:      vehicle.turn_type,
-          speed:          vehicle.speed,
-          colliding:      vehicle.colliding ?? false,
-          lastUpdate:     timestamp,
+          prevPosition:      vehicle.position,
+          currentPosition:   vehicle.position,
+          targetPosition:    vehicle.position,
+          prevAgentState:    vehicle.agent_state,
+          currentAgentState: vehicle.agent_state,
+          targetAgentState:  vehicle.agent_state,
+          source:            vehicle.source,
+          destination:       vehicle.destination,
+          turn_type:         vehicle.turn_type,
+          speed:             vehicle.speed,
+          colliding:         vehicle.colliding ?? false,
+          lastUpdate:        timestamp,
         });
       }
     });
@@ -54,11 +54,17 @@ class VehicleInterpolator {
       const t      = Math.min((currentTime - v.lastUpdate) / POLL_INTERVAL, 1.0);
       const eased  = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
       v.currentPosition = v.prevPosition + (v.targetPosition - v.prevPosition) * eased;
-      v.currentState    = t > 0.5 ? v.targetState : v.prevState;
-      out.push({ id: v.id, position: v.currentPosition, state: v.currentState,
-                 source: v.source, destination: v.destination,
-                 turn_type: v.turn_type, speed: v.speed,
-                 colliding: v.colliding ?? false });
+      v.currentAgentState = t > 0.5 ? v.targetAgentState : v.prevAgentState;
+      out.push({ 
+        id: v.id, 
+        position: v.currentPosition, 
+        agent_state: v.currentAgentState,
+        source: v.source, 
+        destination: v.destination,
+        turn_type: v.turn_type, 
+        speed: v.speed,
+        colliding: v.colliding ?? false 
+      });
     }
     return out;
   }
@@ -223,7 +229,7 @@ function IntersectionSVG({ vehicles, intersection, roadInfo }) {
 
 // ─── Car shape ────────────────────────────────────────────────────────────────
 function CarShape({ vehicle, cx, cy }) {
-  const { source, position, state, colliding } = vehicle;
+  const { source, position, agent_state, colliding } = vehicle;
 
   let x, y, rotation;
   if      (source === 'north') { x = cx - 12; y = position; rotation = 180; }
@@ -231,11 +237,19 @@ function CarShape({ vehicle, cx, cy }) {
   else if (source === 'east')  { x = position; y = cy - 12; rotation = 90;  }
   else                         { x = position; y = cy + 12; rotation = 270; }
 
-  // Collision overrides state colour with red flash
-  const color = colliding
-    ? '#ff3333'
-    : ({ moving: '#4a9eff', waiting: '#ffb84a', crossing: '#44ff88' }[state] || '#888');
+  // Phase 1: Color-code vehicles by agent state
+  // APPROACHING = blue, NEGOTIATING = yellow, WAITING = orange, CROSSING = green, EXITED = gray
+  const stateColors = {
+    approaching: '#4a9eff',  // blue
+    negotiating: '#ffd700',  // yellow
+    waiting:     '#ffb84a',  // orange
+    crossing:    '#44ff88',  // green
+    exited:      '#888888',  // gray
+    collided:    '#ff3333',  // red
+  };
 
+  // Collision overrides with red flash
+  const color = colliding ? '#ff3333' : (stateColors[agent_state] || '#888');
   const strokeColor = colliding ? '#ff8888' : 'rgba(255,255,255,0.4)';
 
   return (

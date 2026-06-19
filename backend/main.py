@@ -405,6 +405,13 @@ def get_safety_stats():
         return manager.get_safety_stats()
 
 
+@app.get("/agents/state-counts")
+def get_agent_state_counts():
+    """Return counts of agents in each state (Phase 1)."""
+    with simulation_lock:
+        return manager.get_agent_state_counts()
+
+
 @app.get("/control/status")
 def get_control_status():
     """Return current simulation control state including accurate spawn counts."""

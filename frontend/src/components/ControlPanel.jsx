@@ -7,26 +7,29 @@ export default function ControlPanel() {
   const [status,   setStatus]   = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [safety,   setSafety]   = useState(null);
+  const [agentStates, setAgentStates] = useState(null);
   const [target,   setTarget]   = useState(4);
   const [speed,    setSpeed]    = useState(1.0);
   const [paused,   setPaused]   = useState(false);
 
-  // ── Poll all three endpoints every second ─────────────────────────────────
+  // ── Poll all endpoints every second ─────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
     const tick = async () => {
       try {
-        const [ctrl, traffic, safetyData] = await Promise.all([
+        const [ctrl, traffic, safetyData, agentStateData] = await Promise.all([
           fetch(`${API_URL}/control/status`).then(r => r.json()),
           fetch(`${API_URL}/traffic/state`).then(r => r.json()),
           fetch(`${API_URL}/safety/stats`).then(r => r.json()),
+          fetch(`${API_URL}/agents/state-counts`).then(r => r.json()),
         ]);
         if (cancelled) return;
 
         setStatus(ctrl);
         setVehicles(traffic.vehicles ?? []);
         setSafety(safetyData);
+        setAgentStates(agentStateData);
         setTarget(ctrl.target_vehicle_count);
         setSpeed(ctrl.speed);
         setPaused(ctrl.paused);
@@ -91,6 +94,13 @@ export default function ControlPanel() {
   const failedCrossings = safety?.total_failed_crossings ?? 0;
   const safetyPct      = safety?.safety_accuracy_pct    ?? 100;
 
+  // Phase 1: Agent state counts
+  const approaching = agentStates?.approaching ?? 0;
+  const negotiating = agentStates?.negotiating ?? 0;
+  const waiting     = agentStates?.waiting ?? 0;
+  const crossing    = agentStates?.crossing ?? 0;
+  const exited      = agentStates?.exited ?? 0;
+
   const safetyColor = safetyPct >= 95 ? '#44ff88'
                     : safetyPct >= 80 ? '#ffb84a'
                     : '#ff4444';
@@ -151,7 +161,18 @@ export default function ControlPanel() {
         <p className="cp-hint">{totalVehicles} / {maxVehicles} active</p>
       </section>
 
-      {/* ── Section 3: Traffic Metrics ── */}
+      {/* ── Section 3: Agent States (Phase 1) ── */}
+      <section className="cp-section">
+        <p className="cp-label">Agent States</p>
+        <div className="cp-metrics">
+          <Metric label="Approaching" value={approaching} accent="#4a9eff" />
+          <Metric label="Negotiating" value={negotiating} accent="#ffd700" />
+          <Metric label="Waiting"     value={waiting}     accent="#ffb84a" />
+          <Metric label="Crossing"    value={crossing}    accent="#44ff88" />
+        </div>
+      </section>
+
+      {/* ── Section 4: Traffic Metrics ── */}
       <section className="cp-section">
         <p className="cp-label">Traffic</p>
         <div className="cp-metrics">
@@ -163,7 +184,7 @@ export default function ControlPanel() {
         </div>
       </section>
 
-      {/* ── Section 4: Safety Metrics ── */}
+      {/* ── Section 5: Safety Metrics ── */}
       <section className="cp-section cp-section--last">
         <p className="cp-label">Safety</p>
         <div className="cp-metrics">

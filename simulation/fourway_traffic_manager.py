@@ -10,12 +10,12 @@ from pathlib import Path
 from typing import Set, FrozenSet, Dict, Tuple
 
 try:
-    from simulation.vehicle import Vehicle, VehicleState
+    from simulation.vehicle import VehicleAgent, VehicleState, AgentState
     from simulation.direction import Direction, Route
     from simulation.fourway_intersection import FourWayIntersection
 except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))
-    from vehicle import Vehicle, VehicleState
+    from vehicle import VehicleAgent, VehicleState, AgentState
     from direction import Direction, Route
     from fourway_intersection import FourWayIntersection
 
@@ -66,7 +66,7 @@ class FourWayTrafficManager:
     def __init__(self, intersection: FourWayIntersection, road_length: float = 500.0):
         self.intersection = intersection
         self.road_length  = road_length
-        self.vehicles: list[Vehicle] = []
+        self.vehicles: list[VehicleAgent] = []
         self._next_id = 1
 
         cx = intersection.center_x
@@ -99,11 +99,7 @@ class FourWayTrafficManager:
         # A pair enters this set on first overlap and is counted once.
         self._active_collision_pairs: Set[FrozenSet[int]] = set()
         self.total_collisions: int = 0
-
-        # ── Crossing / safety tracking ────────────────────────────────────────
-        self._crossing_attempted: Dict[int, bool] = {}
-        self._crossed_safely:     Dict[int, bool] = {}
-        self._colliding_ids:      Set[int]        = set()
+        self._colliding_ids: Set[int] = set()
 
     # ── Spawn helpers ─────────────────────────────────────────────────────────
 
@@ -117,7 +113,7 @@ class FourWayTrafficManager:
         return True
 
     def spawn_vehicle(self, source: str = None, destination: str = None,
-                      desired_speed: float = None) -> 'Vehicle | None':
+                      desired_speed: float = None) -> 'VehicleAgent | None':
         if source is None:
             available = [d for d in Direction.all() if self.can_spawn_at_direction(d)]
             if not available:
@@ -133,7 +129,7 @@ class FourWayTrafficManager:
         if desired_speed is None:
             desired_speed = random.uniform(MIN_DESIRED_SPEED, MAX_DESIRED_SPEED)
 
-        vehicle = Vehicle(
+        vehicle = VehicleAgent(
             vehicle_id    = self._next_id,
             route         = Route(source, destination),
             position      = self.spawn_positions[source],
@@ -175,7 +171,19 @@ class FourWayTrafficManager:
         # 4. Car-following — skip COLLIDED vehicles
         self._enforce_following_distance()
 
-        # 5. Physics sub-steps
+        # 5. Update agent state machine for each vehicle
+        for vehicle in self.vehicles:
+            if vehicle.state != VehicleState.COLLIDED:
+                is_inside = self.intersection.is_in_intersection(vehicle)
+                vehicle.update_agent_state(
+                    intersection_center_x=self.intersection.center_x,
+                    intersection_center_y=self.intersection.center_y,
+                    intersection_size=self.intersection.size,
+                    is_inside_intersection=is_inside,
+                    dt=dt
+                )
+
+        # 6. Physics sub-steps
         SUB_STEP = 0.05
         steps    = max(1, round(dt / SUB_STEP))
         sub_dt   = dt / steps
@@ -184,10 +192,10 @@ class FourWayTrafficManager:
                 if vehicle.state != VehicleState.COLLIDED:
                     self._move_vehicle(vehicle, sub_dt)
 
-        # 6. Collision detection (intersection zone only)
+        # 7. Collision detection (intersection zone only)
         self._detect_collisions()
 
-        # 7. Remove vehicles that have exited or finished their collision freeze
+        # 8. Remove vehicles that have exited or finished their collision freeze
         to_remove = [v for v in self.vehicles
                      if self._has_exited(v) or
                      (v.state == VehicleState.COLLIDED and v.collision_freeze_timer <= 0)]
@@ -198,7 +206,7 @@ class FourWayTrafficManager:
         self.vehicles = [v for v in self.vehicles if v.vehicle_id not in remove_ids]
         self.total_removed += before - len(self.vehicles)
 
-        # 8. Clean up stale collision pairs
+        # 9. Clean up stale collision pairs
         live_ids = {v.vehicle_id for v in self.vehicles}
         stale = {p for p in self._active_collision_pairs if not p.issubset(live_ids)}
         for pair in stale:
@@ -217,7 +225,7 @@ class FourWayTrafficManager:
 
     # ── Movement ──────────────────────────────────────────────────────────────
 
-    def _move_vehicle(self, vehicle: Vehicle, dt: float):
+    def _move_vehicle(self, vehicle: VehicleAgent, dt: float):
         self._update_speed(vehicle, dt)
         delta = vehicle.current_speed * dt
         if vehicle.route.source in (Direction.NORTH, Direction.WEST):
@@ -226,16 +234,16 @@ class FourWayTrafficManager:
             vehicle.position += delta
 
     @staticmethod
-    def _update_speed(vehicle: Vehicle, dt: float):
+    def _update_speed(vehicle: VehicleAgent, dt: float):
         diff = vehicle.target_speed - vehicle.current_speed
         if abs(diff) < 0.05:
             vehicle.current_speed = vehicle.target_speed
             return
         if diff > 0:
-            change = Vehicle.MAX_ACCELERATION * dt
+            change = VehicleAgent.MAX_ACCELERATION * dt
             vehicle.current_speed = min(vehicle.current_speed + change, vehicle.target_speed)
         else:
-            rate   = Vehicle.EMERGENCY_DECELERATION if vehicle.is_emergency_braking else Vehicle.MAX_DECELERATION
+            rate   = VehicleAgent.EMERGENCY_DECELERATION if vehicle.is_emergency_braking else VehicleAgent.MAX_DECELERATION
             change = rate * dt
             vehicle.current_speed = max(vehicle.current_speed - change, vehicle.target_speed)
         vehicle.current_speed = max(0.0, min(vehicle.current_speed, vehicle.max_speed))
@@ -298,7 +306,7 @@ class FourWayTrafficManager:
 
     # ── Collision detection ───────────────────────────────────────────────────
 
-    def _get_aabb(self, vehicle: Vehicle) -> Tuple[float, float, float, float]:
+    def _get_aabb(self, vehicle: VehicleAgent) -> Tuple[float, float, float, float]:
         """
         Compute AABB for a vehicle in simulation-space coordinates.
         Uses slightly-shrunk boxes (COLL_HALF_W / COLL_HALF_L) to avoid
@@ -326,7 +334,7 @@ class FourWayTrafficManager:
             return (cx_v - COLL_HALF_L, cy_v - COLL_HALF_W,
                     cx_v + COLL_HALF_L, cy_v + COLL_HALF_W)
 
-    def _is_near_intersection(self, vehicle: Vehicle) -> bool:
+    def _is_near_intersection(self, vehicle: VehicleAgent) -> bool:
         """
         Return True only when the vehicle is inside or very close to the
         intersection zone.  Collision detection is restricted to this area
@@ -393,6 +401,7 @@ class FourWayTrafficManager:
                         for v in (va, vb):
                             v.in_collision            = True
                             v.state                   = VehicleState.COLLIDED
+                            v.agent_state             = AgentState.COLLIDED
                             v.current_speed           = 0.0
                             v.target_speed            = 0.0
                             v.collision_freeze_timer  = COLLISION_FREEZE_DURATION
@@ -407,14 +416,12 @@ class FourWayTrafficManager:
 
     # ── Exit detection ────────────────────────────────────────────────────────
 
-    def _on_vehicle_exit(self, vehicle: Vehicle):
+    def _on_vehicle_exit(self, vehicle: VehicleAgent):
         """Clean up vehicle data when it exits."""
         vid = vehicle.vehicle_id
-        self._crossing_attempted.pop(vid, None)
-        self._crossed_safely.pop(vid, None)
         self._colliding_ids.discard(vid)
 
-    def _has_exited(self, vehicle: Vehicle) -> bool:
+    def _has_exited(self, vehicle: VehicleAgent) -> bool:
         # COLLIDED vehicles are removed by their freeze timer, not by exit threshold
         if vehicle.state == VehicleState.COLLIDED:
             return False
@@ -442,7 +449,10 @@ class FourWayTrafficManager:
                 "turn_type":   v.route.turn_type,
                 "position":    round(v.position, 2),
                 "speed":       round(v.current_speed, 2),
-                "state":       v.state,
+                "state":       v.state,  # Legacy state for compatibility
+                "agent_state": v.agent_state.value,  # New agent state
+                "waiting_time": round(v.waiting_time, 2),
+                "priority":    round(v.priority, 2),
                 "colliding":   v.vehicle_id in colliding,
             }
             for v in self.vehicles
@@ -450,23 +460,44 @@ class FourWayTrafficManager:
 
     def get_safety_stats(self) -> dict:
         # Get accurate crossing counts from intersection
-        total_crossings = self.intersection.total_crossings_completed
         safe_crossings = self.intersection.total_safe_crossings
-        failed_crossings = total_crossings - safe_crossings
         collisions = max(0, self.total_collisions)
-
-        accuracy = round((safe_crossings / total_crossings) * 100.0, 1) if total_crossings > 0 else 100.0
+        
+        # Total attempts = successful crossings + collisions
+        # This gives us the true pass/fail rate
+        total_attempts = safe_crossings + collisions
+        
+        # Calculate passing accuracy: safe crossings as percentage of all attempts
+        if total_attempts > 0:
+            accuracy = round((safe_crossings / total_attempts) * 100.0, 1)
+        else:
+            accuracy = 100.0  # No attempts yet = perfect score
+        
         accuracy = max(0.0, min(100.0, accuracy))
 
         return {
             "total_collisions":        collisions,
-            "total_crossing_attempts": total_crossings,
+            "total_crossing_attempts": total_attempts,
             "total_safe_crossings":    safe_crossings,
-            "total_failed_crossings":  failed_crossings,
+            "total_failed_crossings":  collisions,  # Failed = collisions
             "safety_accuracy_pct":     accuracy,
             "currently_colliding":     len(self._active_collision_pairs),
             "deadlock_recoveries":     self.intersection.deadlock_recoveries,
         }
+
+    def get_agent_state_counts(self) -> dict:
+        """Return counts of agents in each state."""
+        counts = {
+            "approaching": 0,
+            "negotiating": 0,
+            "waiting": 0,
+            "crossing": 0,
+            "exited": 0,
+            "collided": 0,
+        }
+        for v in self.vehicles:
+            counts[v.agent_state.value] += 1
+        return counts
 
     def get_vehicles_by_direction(self) -> dict:
         by_dir = {d: [] for d in Direction.all()}
