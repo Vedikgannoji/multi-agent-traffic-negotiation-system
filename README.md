@@ -1,317 +1,281 @@
-# Autonomous Traffic Coordination System
+# Multi-Agent Traffic Negotiation Simulator
 
-A **portfolio-grade** intelligent traffic simulation with **zero collisions**, smooth 60fps rendering, path-based reservation system, and professional visual design.
+<p align="center">
+  Multi-agent traffic simulation platform for autonomous vehicle coordination, communication, negotiation, and reinforcement learning.
+</p>
 
-![Status](https://img.shields.io/badge/status-production-green)
-![Collisions](https://img.shields.io/badge/collisions-zero-brightgreen)
-![Python](https://img.shields.io/badge/python-3.8+-blue)
-![React](https://img.shields.io/badge/react-19.2-blue)
-![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-green)
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-Backend-blue" />
+  <img src="https://img.shields.io/badge/FastAPI-API-green" />
+  <img src="https://img.shields.io/badge/React-Frontend-61DAFB" />
+  <img src="https://img.shields.io/badge/Multi--Agent-Systems-orange" />
+  <img src="https://img.shields.io/badge/Reinforcement-Learning-purple" />
+</p>
+
+---
+
+## Overview
+
+Urban traffic congestion continues to impact mobility, fuel efficiency, economic productivity, and environmental sustainability. Traditional traffic management systems often rely on centralized control mechanisms and fixed policies that struggle to adapt to rapidly changing traffic conditions.
+
+This project explores a decentralized alternative where autonomous vehicles operate as intelligent agents capable of perceiving their environment, communicating with nearby agents, negotiating decisions, and learning cooperative behaviors.
+
+The simulator serves as a platform for studying how autonomous vehicles can coordinate safely and efficiently while balancing individual objectives with collective traffic goals.
+
+---
+
+## Key Capabilities
+
+### Autonomous Vehicle Agents
+
+Each vehicle is modeled as an independent agent with:
+
+* Position awareness
+* Speed and motion control
+* Direction and destination tracking
+* Waiting time monitoring
+* Priority handling
+* State-based behavior
+
+### Agent Communication
+
+Agents exchange information about:
+
+* Position
+* Speed
+* Direction
+* Intent
+* Local traffic conditions
+
+Enabling cooperative and decentralized decision-making.
+
+### Negotiation Framework
+
+Vehicles can coordinate actions through negotiation mechanisms that support:
+
+* Conflict resolution
+* Priority determination
+* Cooperative yielding
+* Resource sharing
+* Safe traffic movement
+
+### Reinforcement Learning Environment
+
+The simulator is designed as a training environment for learning:
+
+* Efficient navigation policies
+* Cooperative strategies
+* Congestion reduction behaviors
+* Safety-aware decision making
+* Traffic optimization techniques
+
+---
+
+## System Architecture
+
+```text
+┌─────────────────────────────┐
+│     Traffic Environment     │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│     Vehicle Agents          │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│     Communication Layer     │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│     Negotiation Engine      │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│ Reinforcement Learning Layer│
+└─────────────────────────────┘
+```
+
+---
+
+## Agent Lifecycle
+
+```text
+APPROACHING
+      ↓
+NEGOTIATING
+      ↓
+WAITING
+      ↓
+CROSSING
+      ↓
+EXITED
+```
+
+Each agent continuously evaluates its environment and updates its behavior according to surrounding traffic conditions.
+
+---
 
 ## Features
 
-### 🎯 Smooth Real-Time Rendering
-- **60fps interpolation** between backend updates
-- Natural acceleration and deceleration
-- No jumping or teleporting
-- RequestAnimationFrame-based animation loop
+### Simulation Engine
 
-### 🚦 Collision-Free Coordination
-- **Zero collisions** through path-based reservation
-- Comprehensive conflict matrix (144 route combinations)
-- 50m minimum following distance enforced
-- FIFO queueing per direction
-- Proper reservation lifecycle management
+* Real-time traffic simulation
+* Dynamic vehicle generation
+* Agent lifecycle management
+* Safety monitoring
+* Collision detection
+* Configurable traffic density
 
-### 🎛️ Testing & Control Panel
-- **Manual vehicle spawning** from any direction
-- **Dynamic vehicle count** control (0-30)
-- **Simulation speed** control (1x, 2x, 4x)
-- **Pause/Resume** for debugging
-- **Reset** simulation instantly
-- Real-time statistics and monitoring
+### Multi-Agent Framework
 
-### 🎨 Professional Visual Design
-- Premium dark theme with subtle gradients
-- Realistic car shapes with proper orientation
-- Accurate road geometry with lane markings
-- Clean, minimal UI with organized stats
+* Autonomous vehicle agents
+* State-driven behavior model
+* Decentralized coordination
+* Negotiation support
+* Extensible communication architecture
 
-### 🏗️ Modular Architecture
-- Backend: Authoritative simulation logic (Python/FastAPI)
-- Frontend: Smooth rendering engine (React/SVG)
-- Clear separation of concerns
-- Future-ready for RL, V2V, traffic lights
+### Analytics & Monitoring
 
-## Quick Start
+* Traffic flow statistics
+* Safety metrics
+* Agent state monitoring
+* Throughput analysis
+* Real-time dashboard
 
-### Prerequisites
-- Python 3.8+
-- Node.js 16+
+### Interactive Dashboard
 
-### Installation
+* Live simulation visualization
+* Agent monitoring
+* Traffic analytics
+* Safety analytics
+* Simulation controls
+
+---
+
+## Technology Stack
+
+| Layer      | Technology                       |
+| ---------- | -------------------------------- |
+| Backend    | Python, FastAPI                  |
+| Frontend   | React, Vite                      |
+| Simulation | Custom Traffic Engine            |
+| Agents     | Autonomous Agent Model           |
+| AI         | Reinforcement Learning           |
+
+---
+
+## Installation
+
+### Clone Repository
 
 ```bash
-# Backend dependencies
-pip install fastapi uvicorn
-
-# Frontend dependencies
-cd frontend
-npm install
+git clone <repository-url>
+cd <repository-name>
 ```
 
-### Validation
+### Backend Setup
 
-**Test the collision-free system:**
 ```bash
-python test_reservation_system.py
+pip install -r requirements.txt
 ```
 
-Expected output: `✅ ALL TESTS PASSED!`
+Start backend:
 
-### Running
-
-**Terminal 1 - Backend:**
 ```bash
 uvicorn backend.main:app --reload
 ```
 
-Expected output:
-```
-✓ 4-Way Intersection simulation started (PATH-BASED RESERVATION)
-✓ Zero-collision guarantee through trajectory reservation
+Backend URL:
+
+```text
+http://localhost:8000
 ```
 
-**Terminal 2 - Frontend:**
+### Frontend Setup
+
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
 
-**Browser:**
-Open `http://localhost:5173`
+Frontend URL:
 
-## What You'll See
-
-- **Zero collisions** - vehicles never overlap or collide
-- **Smooth vehicle movement** at 60fps (no stuttering)
-- **Realistic car shapes** with directional rotation
-- **Professional dark interface** with clean typography
-- **Orderly traffic flow** with proper queueing
-- **Path-based coordination** with conflict prevention
-- **Real-time stats** showing reservations and conflicts prevented
-- **Control panel** for testing and debugging (spawn, pause, speed control)
-
-## How It Works
-
-### Frontend Interpolation Engine
-
-The system achieves smooth 60fps rendering even though the backend only updates at 1fps:
-
-```
-Backend (1 Hz)              Frontend (60 Hz)
-─────────────              ────────────────
-Update at t=0s             Render at t=0.000s
-Position: 100       ───>   Display: 100
-
-(no update)                Render at t=0.016s
-                    ───>   Display: 103 (interpolated)
-
-(no update)                Render at t=0.500s
-                    ───>   Display: 150 (interpolated)
-
-Update at t=1s             Render at t=1.000s
-Position: 200       ───>   Display: 200
+```text
+http://localhost:5173
 ```
 
-**Key Technique:** Linear interpolation (lerp) with easing functions
+---
 
-```javascript
-position = prevPosition + (targetPosition - prevPosition) * easeInOut(progress)
-```
+## Running the Simulator
 
-### Collision-Free Coordination
+1. Start the backend server.
+2. Start the frontend application.
+3. Open the dashboard in your browser.
+4. Configure traffic density.
+5. Observe agent behavior and system metrics in real time.
 
-**Path-Based Reservation System:**
+---
 
-1. Vehicle approaches intersection (100m detection)
-2. Requests trajectory reservation
-3. System checks comprehensive conflict matrix (144 cases)
-4. Joins FIFO queue for its direction
-5. Reaches stop line (25m before intersection)
-6. Manager validates: no conflicts? first in queue? safe timing?
-7. If approved → reservation granted, vehicle enters
-8. If denied → vehicle waits (conflict detected)
-9. Crosses intersection with active reservation
-10. Fully clears (35m past intersection)
-11. Reservation released → conflicting vehicles can proceed
+## Metrics
 
-**Conflict Detection:**
-- Perpendicular straights (e.g., North-South vs East-West)
-- Opposite left turns (cross in center)
-- Adjacent left turns (path crossing)
-- Left vs oncoming straight (classic conflict)
-- Right turn conflicts (path intersection)
-- All 144 route combinations validated
+### Traffic Metrics
 
-**Result:** Zero collisions guaranteed
+* Active Vehicles
+* Waiting Vehicles
+* Crossing Vehicles
+* Throughput
+* Total Spawned Vehicles
 
-### Architecture
+### Safety Metrics
 
-```
-┌──────────────────────────────────────┐
-│          BACKEND (Python)            │
-│  - Authoritative simulation (1 Hz)   │
-│  - Intersection coordination         │
-│  - Collision prevention              │
-│  - Vehicle spawning/removal          │
-└──────────────────────────────────────┘
-                 ↓ REST API
-┌──────────────────────────────────────┐
-│         FRONTEND (React)             │
-│  - Interpolation engine (60 Hz)     │
-│  - Smooth rendering                  │
-│  - Professional UI                   │
-│  - No game logic                     │
-└──────────────────────────────────────┘
-```
+* Safe Crossings
+* Failed Crossings
+* Collisions
+* Passing Accuracy
 
-## Configuration
+### Agent Metrics
 
-### Vehicle Count
-```python
-# backend/main.py
-TARGET_VEHICLE_COUNT = 4  # Adjust 4-6 for optimal visibility
-```
+* Agent States
+* Waiting Times
+* Negotiation Statistics
+* Communication Statistics
 
-### Safety Parameters
-```python
-# simulation/fourway_traffic_manager.py
-MIN_FOLLOWING_DISTANCE = 50.0  # meters (prevents overlaps)
+---
 
-# simulation/fourway_intersection.py
-self.stop_distance = 25.0       # meters before intersection
-self.clearance_distance = 35.0  # meters past intersection
-self.min_grant_interval = 0.5   # seconds between approvals
-```
+## Research Applications
 
-### Rendering Speed
-```javascript
-// frontend/src/components/TrafficSimulation.jsx
-const RENDER_FPS = 60  // frames per second
-const POLL_INTERVAL = 1000  // backend polling (ms)
-```
+This platform can be used to study:
 
-## API Endpoints
+* Multi-Agent Systems
+* Autonomous Vehicles
+* Vehicle-to-Vehicle Communication
+* Reinforcement Learning
+* Cooperative Decision Making
+* Distributed Coordination
+* Intelligent Transportation Systems
+* Traffic Optimization
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /` | API info, mode (path_based_reservation), features |
-| `GET /traffic/state` | Vehicle positions, routes, states |
-| `GET /traffic/info` | Road config, vehicle counts |
-| `GET /intersection/state` | Active reservations, conflicts prevented, waiting queues |
+---
 
-**Example Response:**
-```json
-{
-  "active_reservations": 1,
-  "conflicts_prevented": 23,
-  "reservation_details": [
-    {
-      "vehicle_id": 3,
-      "route": "north→south",
-      "turn_type": "straight",
-      "state": "crossing"
-    }
-  ]
-}
-```
+## Future Extensions
 
-## Documentation
+The architecture is designed to support a wide range of traffic scenarios, including:
 
-### Core Documentation
-- **[SIMULATION_CONTROLS.md](SIMULATION_CONTROLS.md)** - Testing & control panel guide (NEW)
-- **[QUICK_START_COLLISION_FREE.md](QUICK_START_COLLISION_FREE.md)** - Quick start guide
-- **[PATH_BASED_RESERVATION.md](PATH_BASED_RESERVATION.md)** - Complete technical explanation
-- **[COLLISION_FREE_UPGRADE.md](COLLISION_FREE_UPGRADE.md)** - Implementation summary
-- **[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)** - Status and checklist
+* Lane-change negotiation
+* Highway merging
+* Roundabouts
+* Multi-intersection networks
+* Urban road networks
+* Emergency vehicle prioritization
+* Large-scale agent coordination
 
-### Additional Documentation
-- **[PORTFOLIO_UPGRADE.md](PORTFOLIO_UPGRADE.md)** - Interpolation engine details
-- **[COORDINATION_IMPROVEMENTS.md](COORDINATION_IMPROVEMENTS.md)** - Intersection logic
-- **[FOURWAY_GUIDE.md](FOURWAY_GUIDE.md)** - System architecture guide
-- **[SYSTEM_FLOW.md](SYSTEM_FLOW.md)** - Visual flow diagrams
-
-### Testing
-- **[test_reservation_system.py](test_reservation_system.py)** - Comprehensive test suite (35 tests)
-
-## Technical Highlights
-
-### Collision Prevention
-- **Zero collisions** through comprehensive conflict matrix
-- **144 route combinations** validated
-- **Path-based reservation** (not just occupancy)
-- **6-state lifecycle** (REQUEST → APPROVED → ENTERING → CROSSING → EXITING → RELEASED)
-- **O(1) conflict lookups** with caching
-
-### Performance
-- 60fps rendering on mid-range laptops
-- <5% CPU usage
-- <100MB memory
-- Instant UI response
-- Minimal overhead (~200 bytes per vehicle)
-
-### Code Quality
-- **100% test pass rate** (35 tests)
-- Modular, extensible architecture
-- Comprehensive inline comments
-- Beginner-friendly structure
-- Production-ready patterns
-
-### Visual Design
-- Portfolio-grade aesthetics
-- Professional dark theme
-- Smooth animations
-- Clear information hierarchy
-
-## Use Cases
-
-This project demonstrates:
-- **Collision-free coordination** - Path-based reservation with comprehensive conflict detection
-- **Real-time systems** - Smooth interpolation between slow updates
-- **Client-server architecture** - Clear separation of concerns
-- **Traffic simulation** - Realistic coordination algorithms
-- **Professional UI/UX** - Modern, minimal design
-- **Performance optimization** - Efficient rendering techniques
-- **Test-driven development** - Comprehensive test suite
-
-Perfect for:
-- Portfolio projects (production-grade quality)
-- GitHub showcases (zero collisions)
-- Resume demonstrations (technical depth)
-- System design interviews (architecture discussion)
-- Research presentations (validated algorithms)
-- RL training environments (safe state space)
-
-## Future Enhancements
-
-- [ ] Traffic light system with timed phases
-- [ ] Multi-lane roads per direction
-- [ ] Reinforcement learning agents
-- [ ] V2V communication protocols
-- [ ] Pedestrian crossings
-- [ ] Performance metrics dashboard
-- [ ] WebGL rendering for 1000+ vehicles
+---
 
 ## License
 
-MIT License - feel free to use for your portfolio!
-
-## Credits
-
-Built with:
-- FastAPI (backend)
-- React 19 (frontend)
-- SVG (rendering)
-- RequestAnimationFrame (smooth animation)
+This project is intended for educational, research, and experimentation purposes.
