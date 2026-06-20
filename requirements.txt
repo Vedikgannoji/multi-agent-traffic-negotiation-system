@@ -1,0 +1,16 @@
+# Multi-Agent Traffic Negotiation Simulator - Backend Dependencies
+# Python 3.8+
+
+# Web Framework
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# Data Validation
+pydantic==2.5.0
+pydantic-core==2.14.1
+
+# Geometry and Spatial Operations
+shapely==2.0.2
+
+# Development and Testing (optional, but recommended)
+pytest==7.4.3
