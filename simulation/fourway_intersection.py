@@ -97,7 +97,12 @@ class FourWayIntersection:
         self.phase_elapsed: float      = 0.0
 
         # ── Grant state ────────────────────────────────────────────────────────
-        # At most ONE vehicle holds the crossing grant at a time.
+        # TASK A: Support multiple simultaneous grants within same phase
+        # (e.g., both NORTH and SOUTH vehicles can cross together in NS phase)
+        self.granted_vehicle_ids: Set[int] = set()  # Multiple vehicles can have grants
+        self.grant_times: Dict[int, float] = {}     # Track when each grant was issued
+        
+        # Legacy compatibility - keep single grant ID field for API
         self.granted_vehicle_id: Optional[int] = None
         self.granted_at: float                 = 0.0
 
@@ -195,7 +200,8 @@ class FourWayIntersection:
         return sum(len(self.queues[d]) for d in dirs)
 
     def _has_vehicle_crossing(self) -> bool:
-        return self.granted_vehicle_id is not None
+        """Check if any vehicle currently has a grant."""
+        return len(self.granted_vehicle_ids) > 0
 
     def _select_phase_for(self, all_vehicles: List[Vehicle]) -> str:
         """Choose the best phase given current vehicle positions."""
@@ -225,6 +231,8 @@ class FourWayIntersection:
         Called once per update cycle.  Advances the phase timer and rotates
         the phase when appropriate.  Also issues or refreshes the crossing
         grant for the lead vehicle in the active phase.
+        
+        TASK B FIX: Only rotate phase when intersection is completely empty.
         """
         self.phase_elapsed += dt
 
@@ -232,12 +240,9 @@ class FourWayIntersection:
         queue_empty = self._queue_size(active_dirs) == 0
         no_crossing = not self._has_vehicle_crossing()
 
-        # CRITICAL: never rotate while a vehicle is physically inside
-        vehicle_inside = any(
-            self.is_in_intersection(v)
-            for v in all_vehicles
-            if v.state != VehicleState.COLLIDED
-        )
+        # TASK B CRITICAL: Count vehicles physically inside intersection
+        vehicles_inside_count = len(self.vehicles_inside)
+        intersection_empty = vehicles_inside_count == 0
 
         # Check if the OTHER axis has vehicles waiting
         opposite_dirs = PHASE_DIRS[self._opposite_phase()] if self.current_phase != PHASE_IDLE else []
@@ -246,12 +251,9 @@ class FourWayIntersection:
         timed_out   = self.phase_elapsed >= MAX_PHASE_DURATION
         min_elapsed = self.phase_elapsed >= MIN_PHASE_DURATION
 
-        # Rotate when:
-        #   - not physically inside
-        #   - no grant held
-        #   - AND: queue drained (past min) OR timed out OR other axis is waiting and we're empty
+        # TASK B: Rotate ONLY when intersection is completely empty
         should_rotate = (
-            not vehicle_inside and
+            intersection_empty and
             no_crossing and
             (
                 (queue_empty and min_elapsed) or
@@ -261,19 +263,28 @@ class FourWayIntersection:
         )
 
         if should_rotate or self.current_phase == PHASE_IDLE:
+            # Log corridor switch events
+            if self.current_phase != PHASE_IDLE and vehicles_inside_count == 0:
+                print(f"[PHASE SWITCH] Time {current_time:.2f}: {self.current_phase} → rotation. Vehicles inside: {vehicles_inside_count}")
             self._rotate_phase(all_vehicles, current_time)
 
-        # Issue grant to lead vehicle in active phase (if none held)
-        if not self._has_vehicle_crossing():
-            self._issue_grant(current_time)
+        # TASK A: Try to issue grants continuously (can issue multiple simultaneously)
+        self._issue_grant(current_time)
 
     def _rotate_phase(self, all_vehicles: List[Vehicle], current_time: float):
-        """Switch to the next phase.  Clears any stale queue entries."""
+        """
+        Switch to the next phase.  Clears any stale queue entries.
+        
+        TASK B: Log phase rotation events with occupancy count.
+        """
         new_phase = self._select_phase_for(all_vehicles)
+        
+        vehicles_inside_count = len(self.vehicles_inside)
 
         if new_phase == PHASE_IDLE:
             # Nothing approaching – stay idle but keep checking
             if self.current_phase != PHASE_IDLE:
+                print(f"[CORRIDOR REVOKED] Time {current_time:.2f}: {self.current_phase} → IDLE. Vehicles inside: {vehicles_inside_count}")
                 self.current_phase  = PHASE_IDLE
                 self.phase_elapsed  = 0.0
                 self.phase_start_time = current_time
@@ -281,9 +292,12 @@ class FourWayIntersection:
 
         # If we were idle or the new phase differs, switch
         if new_phase != self.current_phase or self.current_phase == PHASE_IDLE:
+            old_phase = self.current_phase
             self.current_phase    = new_phase
             self.phase_elapsed    = 0.0
             self.phase_start_time = current_time
+            
+            print(f"[CORRIDOR GRANTED] Time {current_time:.2f}: {old_phase} → {new_phase}. Vehicles inside: {vehicles_inside_count}")
 
             # Purge stale queue entries for the newly active directions
             # (vehicles that left the approach zone while waiting)
@@ -296,54 +310,67 @@ class FourWayIntersection:
 
     def _issue_grant(self, current_time: float):
         """
-        Grant crossing permission to the lead vehicle in the active phase.
-        Only one vehicle may hold the grant at a time.
-        Checks that no vehicle is still near the intersection on a conflicting path.
+        Grant crossing permission to vehicles in the active phase.
+        
+        TASK A FIX: Allow opposite straight movements simultaneously.
+        - Within NS phase: both NORTH and SOUTH can have grants at once
+        - Within EW phase: both EAST and WEST can have grants at once
+        
+        TASK B FIX: Only grant if intersection is completely empty of conflicting traffic.
         """
-        if self._has_vehicle_crossing():
+        active_dirs = self._active_dirs()
+        
+        # TASK B: Safety check - intersection must be empty before first grant
+        if len(self.vehicles_inside) > 0:
+            # Don't grant if ANY vehicle is still physically inside
             return
-
-        for d in self._active_dirs():
+        
+        # Try to issue grants to each direction in the active phase
+        for d in active_dirs:
             q = self.queues[d]
-            while q:
-                lead = q[0]
-                if lead.state == VehicleState.COLLIDED:
-                    q.popleft()
-                    continue
-                if not self.is_in_approach_zone(lead):
-                    q.popleft()
-                    continue
-
-                # Safety: don't grant if any vehicle is still inside or in the
-                # clearance zone on a conflicting route
-                if self._has_nearby_conflict(lead):
-                    return   # wait until intersection is truly clear
-
-                self.granted_vehicle_id = lead.vehicle_id
-                self.granted_at         = current_time
-                self.total_reservations += 1
-                q.popleft()
-                return
-
-    def _has_nearby_conflict(self, candidate: Vehicle) -> bool:
-        """
-        Return True if any vehicle is still inside or in the clearance zone
-        on a route that conflicts with the candidate's route.
-        """
-        for vid in self.vehicles_inside:
-            # vehicles_inside is cleaned up lazily; skip the candidate itself
-            if vid == candidate.vehicle_id:
+            if not q:
                 continue
-            # We don't have direct vehicle references here, but vehicles_inside
-            # tracks IDs of vehicles that entered. If the set is non-empty and
-            # the candidate's phase is active, there's a potential conflict.
-            # Conservative: block if anyone is still inside.
-            return True
-        return False
+                
+            lead = q[0]
+            
+            # Skip invalid vehicles
+            if lead.state == VehicleState.COLLIDED:
+                q.popleft()
+                continue
+            if not self.is_in_approach_zone(lead):
+                q.popleft()
+                continue
+            
+            # Check if this vehicle already has a grant
+            if lead.vehicle_id in self.granted_vehicle_ids:
+                continue
 
-    def _revoke_grant(self):
-        """Unconditionally clear the current grant."""
-        self.granted_vehicle_id = None
+            # Grant to this vehicle
+            self.granted_vehicle_ids.add(lead.vehicle_id)
+            self.grant_times[lead.vehicle_id] = current_time
+            self.total_reservations += 1
+            q.popleft()
+            
+            # Update legacy field for API compatibility
+            if self.granted_vehicle_id is None:
+                self.granted_vehicle_id = lead.vehicle_id
+                self.granted_at = current_time
+            
+            print(f"[GRANT] Time {current_time:.2f}: Vehicle {lead.vehicle_id} from {d} granted. Active grants: {len(self.granted_vehicle_ids)}, Vehicles inside: {len(self.vehicles_inside)}")
+
+    def _revoke_grant(self, vehicle_id: int):
+        """Revoke grant for a specific vehicle."""
+        self.granted_vehicle_ids.discard(vehicle_id)
+        if vehicle_id in self.grant_times:
+            del self.grant_times[vehicle_id]
+        
+        # Update legacy field
+        if self.granted_vehicle_id == vehicle_id:
+            # Set to another active grant if any
+            if self.granted_vehicle_ids:
+                self.granted_vehicle_id = next(iter(self.granted_vehicle_ids))
+            else:
+                self.granted_vehicle_id = None
 
     # ══════════════════════════════════════════════════════════════════════════
     # QUEUE MANAGEMENT
@@ -371,6 +398,8 @@ class FourWayIntersection:
         all approach-zone vehicles, issue a fresh grant.
         """
         self.deadlock_recoveries += 1
+        self.granted_vehicle_ids.clear()
+        self.grant_times.clear()
         self.granted_vehicle_id = None
 
         # Clear all queues
@@ -405,6 +434,9 @@ class FourWayIntersection:
           AT STOP LINE, granted → 'enter'
           INSIDE INTERSECTION → 'cross'  (grant locked until clear)
           FULLY CLEAR → count crossing, release grant, 'continue'
+        
+        TASK A: Support multiple simultaneous grants within same phase.
+        TASK B: Track vehicles inside intersection for corridor handoff safety.
         """
         vid = vehicle.vehicle_id
 
@@ -416,31 +448,43 @@ class FourWayIntersection:
                 if vehicle.state != VehicleState.COLLIDED and not vehicle.in_collision:
                     self.total_safe_crossings += 1
 
+            # TASK B: Remove from vehicles_inside when fully cleared
+            was_inside = vid in self.vehicles_inside
+            self.vehicles_inside.discard(vid)
+            
+            if was_inside:
+                print(f"[CLEARED] Time {current_time:.2f}: Vehicle {vid} cleared. Vehicles inside: {len(self.vehicles_inside)}")
+
             # Release grant IMMEDIATELY so next vehicle can be issued one
-            if self.granted_vehicle_id == vid:
-                self._revoke_grant()
+            if vid in self.granted_vehicle_ids:
+                self._revoke_grant(vid)
                 # Immediately try to issue the next grant
                 self._issue_grant(current_time)
 
-            self.vehicles_inside.discard(vid)
             self._dequeue(vehicle)
             vehicle.set_state(VehicleState.MOVING)
             return 'continue'
 
         # ── 2. Inside intersection ────────────────────────────────────────────
         if self.is_in_intersection(vehicle):
+            was_inside = vid in self.vehicles_inside
             self.vehicles_inside.add(vid)
+            
+            if not was_inside:
+                print(f"[ENTERED] Time {current_time:.2f}: Vehicle {vid} entered. Vehicles inside: {len(self.vehicles_inside)}")
+            
             vehicle.set_state(VehicleState.CROSSING)
             # Lock the grant to this vehicle while it's inside.
-            # Only take the grant if no one else holds it — never steal it.
-            if self.granted_vehicle_id is None:
-                self.granted_vehicle_id = vid
+            if vid not in self.granted_vehicle_ids:
+                self.granted_vehicle_ids.add(vid)
+                if self.granted_vehicle_id is None:
+                    self.granted_vehicle_id = vid
             return 'cross'
 
         # ── 3. Approach zone ──────────────────────────────────────────────────
         if self.is_in_approach_zone(vehicle):
             direction    = vehicle.route.source
-            has_grant    = (self.granted_vehicle_id == vid)
+            has_grant    = (vid in self.granted_vehicle_ids)
             in_active    = (direction in self._active_dirs())
             dist_to_stop = self.get_distance_to_stop_line(vehicle)
 
@@ -487,10 +531,10 @@ class FourWayIntersection:
                 v for v in self.queues[d] if v.vehicle_id in live_ids
             )
 
-        # 2. Purge grant if holder left the simulation
-        if self.granted_vehicle_id is not None:
-            if self.granted_vehicle_id not in live_ids:
-                self._revoke_grant()
+        # 2. Purge grants if holder left the simulation
+        dead_grants = [vid for vid in self.granted_vehicle_ids if vid not in live_ids]
+        for vid in dead_grants:
+            self._revoke_grant(vid)
 
         # 3. Sync vehicles_inside — only vehicles physically inside right now
         self.vehicles_inside = {
@@ -515,14 +559,12 @@ class FourWayIntersection:
 
         if (waiting_in_approach and
                 not crossing_now and
-                self.granted_vehicle_id is None and
+                len(self.granted_vehicle_ids) == 0 and
                 self.phase_elapsed > MAX_PHASE_DURATION + 3.0):
             self._force_recovery(all_vehicles, current_time)
 
         # Keep legacy active_reservations in sync for API compat
-        self.active_reservations = (
-            {self.granted_vehicle_id} if self.granted_vehicle_id else set()
-        )
+        self.active_reservations = self.granted_vehicle_ids.copy()
 
     # ══════════════════════════════════════════════════════════════════════════
     # STATE SERIALISATION (frontend / API)
@@ -530,6 +572,9 @@ class FourWayIntersection:
 
     def get_state(self) -> dict:
         waiting_counts = {d: len(self.queues[d]) for d in Direction.all()}
+        vehicles_inside_count = len(self.vehicles_inside)
+        active_grants_count = len(self.granted_vehicle_ids)
+        
         return {
             "center_x":            self.center_x,
             "center_y":            self.center_y,
@@ -538,9 +583,11 @@ class FourWayIntersection:
             "current_phase":       self.current_phase,
             "phase_elapsed":       round(self.phase_elapsed, 2),
             "active_directions":   self._active_dirs(),
-            # Grant info
-            "granted_vehicle_id":  self.granted_vehicle_id,
+            # Grant info (TASK A: expose multiple grants)
+            "granted_vehicle_id":  self.granted_vehicle_id,  # Legacy single grant
+            "granted_vehicle_ids": list(self.granted_vehicle_ids),  # All active grants
             "active_reservations": len(self.active_reservations),
+            "active_grants_count": active_grants_count,
             # Queues
             "waiting_counts":      waiting_counts,
             # Stats
@@ -549,19 +596,21 @@ class FourWayIntersection:
             "deadlock_recoveries": self.deadlock_recoveries,
             "total_crossings":     self.total_crossings_completed,
             "safe_crossings":      self.total_safe_crossings,
+            # TASK B: Expose vehicles inside count for debugging corridor handoff
+            "vehicles_inside_count": vehicles_inside_count,
             # Legacy frontend fields
-            "occupancy":           1 if self.granted_vehicle_id else 0,
-            "max_occupancy":       1,
+            "occupancy":           active_grants_count,
+            "max_occupancy":       2,  # Can have 2 simultaneous (opposite straights)
             "vehicles_inside":     list(self.vehicles_inside),
-            "reservation_details": (
-                [{"vehicle_id": self.granted_vehicle_id, "state": "crossing"}]
-                if self.granted_vehicle_id else []
-            ),
+            "reservation_details": [
+                {"vehicle_id": vid, "state": "crossing"}
+                for vid in self.granted_vehicle_ids
+            ],
         }
 
     def __repr__(self):
         return (
             f"FourWayIntersection(phase={self.current_phase}, "
-            f"grant={self.granted_vehicle_id}, "
+            f"grants={len(self.granted_vehicle_ids)}, "
             f"queues={sum(len(q) for q in self.queues.values())})"
         )
