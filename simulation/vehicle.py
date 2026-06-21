@@ -96,58 +96,35 @@ class VehicleAgent:
     def update_agent_state(self, intersection_center_x: float, intersection_center_y: float,
                           intersection_size: float, is_inside_intersection: bool, dt: float):
         """
-        Update the agent state machine based on position and conditions.
-        Phase 1: Basic state transitions without negotiation logic.
+        Update the agent state machine based on arbitration commands.
         """
-        # COLLIDED is terminal - never transition out
-        if self.agent_state == AgentState.COLLIDED:
+        if self.agent_state == AgentState.COLLIDED or self.state == VehicleState.COLLIDED:
             return
         
-        # EXITED is terminal
         if self.agent_state == AgentState.EXITED:
             return
-        
-        # Calculate distance to intersection center
+            
         if self.route.source in ('north', 'south'):
             distance_to_center = abs(self.position - intersection_center_y)
         else:
             distance_to_center = abs(self.position - intersection_center_x)
-        
-        # State machine transitions with hysteresis
-        if is_inside_intersection:
-            # Inside intersection -> CROSSING
+
+        # The arbitration engine explicitly sets self.state to WAITING, MOVING, or CROSSING.
+        # We must respect that arbitration decision for visualization and metrics.
+        if self.state == VehicleState.WAITING:
+            self.agent_state = AgentState.WAITING
+            self.waiting_time += dt
+        elif self.state == VehicleState.CROSSING or is_inside_intersection:
             self.agent_state = AgentState.CROSSING
             self.state = VehicleState.CROSSING
             self.waiting_time = 0.0
-            
-        elif distance_to_center < self.NEGOTIATION_ZONE_DISTANCE:
-            # Near intersection - use hysteresis to prevent oscillation
-            if self.agent_state == AgentState.WAITING:
-                # Already waiting - need higher speed to exit waiting state
-                if self.current_speed > self.SPEED_THRESHOLD_MOVING:
-                    self.agent_state = AgentState.NEGOTIATING
-                    self.state = VehicleState.MOVING
-                    self.waiting_time = 0.0
-                else:
-                    # Stay waiting, accumulate time
-                    self.waiting_time += dt
-            else:
-                # Not waiting - check if should enter waiting
-                if self.current_speed < self.SPEED_THRESHOLD_WAITING:
-                    self.agent_state = AgentState.WAITING
-                    self.state = VehicleState.WAITING
-                    self.waiting_time += dt
-                else:
-                    # Moving normally in negotiation zone
-                    self.agent_state = AgentState.NEGOTIATING
-                    self.state = VehicleState.MOVING
-                    self.waiting_time = 0.0
-            
         else:
-            # Far from intersection -> APPROACHING
-            self.agent_state = AgentState.APPROACHING
-            self.state = VehicleState.MOVING  # Legacy state
+            # self.state == VehicleState.MOVING
             self.waiting_time = 0.0
+            if distance_to_center < self.NEGOTIATION_ZONE_DISTANCE:
+                self.agent_state = AgentState.NEGOTIATING
+            else:
+                self.agent_state = AgentState.APPROACHING
 
     def set_agent_state(self, state: AgentState):
         """Manually set agent state (used for special cases like collision/exit)."""

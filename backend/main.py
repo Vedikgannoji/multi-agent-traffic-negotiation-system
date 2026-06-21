@@ -373,11 +373,12 @@ def reset_simulation():
         manager.total_collisions = 0
         manager._active_collision_pairs.clear()
         manager._colliding_ids.clear()
-        manager._crossing_attempted.clear()
-        manager._crossed_safely.clear()
 
         # Reset intersection state (phase-based arbiter)
         intersection.granted_vehicle_id        = None
+        intersection.granted_vehicle_ids.clear()
+        intersection.grant_times.clear()
+        intersection._grant_corridor.clear()
         intersection.current_phase             = "IDLE"
         intersection.phase_elapsed             = 0.0
         intersection.total_reservations        = 0
@@ -386,8 +387,15 @@ def reset_simulation():
         intersection.total_crossings_completed = 0
         intersection.total_safe_crossings      = 0
         intersection.vehicles_inside.clear()
+        intersection.committed_vehicles.clear()
         intersection.active_reservations.clear()
         intersection.reservations.clear()
+
+        # Reset handover state machine
+        intersection._handover_state       = "ACTIVE"
+        intersection._clearance_timer      = 0.0
+        intersection._pending_phase        = None
+        intersection._draining_for_switch  = False
 
         for direction in Direction.all():
             intersection.queues[direction].clear()

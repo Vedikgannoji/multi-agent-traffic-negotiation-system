@@ -182,8 +182,12 @@
   background: #3b82f6;
 }
 
-.state-badge.state-waiting {
+.state-badge.state-negotiating {
   background: #fbbf24;
+}
+
+.state-badge.state-waiting {
+  background: #f97316;
 }
 
 .state-badge.state-crossing {
@@ -233,8 +237,13 @@
   color: white;
 }
 
-.vehicle-card.state-waiting {
+.vehicle-card.state-negotiating {
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.vehicle-card.state-waiting {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   color: white;
 }
 

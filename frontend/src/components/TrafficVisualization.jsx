@@ -231,12 +231,15 @@ function VehicleSVG({ vehicle, centerX, centerY, roadLength }) {
   }
 
   // Determine color based on state
+  const displayState = vehicle.agent_state || state;
   let color;
-  if (state === 'moving') {
+  if (displayState === 'moving' || displayState === 'approaching') {
     color = '#3b82f6'; // blue
-  } else if (state === 'waiting') {
+  } else if (displayState === 'negotiating') {
     color = '#fbbf24'; // yellow
-  } else if (state === 'crossing') {
+  } else if (displayState === 'waiting') {
+    color = '#f97316'; // orange
+  } else if (displayState === 'crossing') {
     color = '#10b981'; // green
   } else {
     color = '#6b7280'; // gray
@@ -262,7 +265,8 @@ function VehicleSVG({ vehicle, centerX, centerY, roadLength }) {
 function VehicleList({ vehicles }) {
   // Group vehicles by state
   const byState = vehicles.reduce((acc, v) => {
-    const state = v.state || 'moving';
+    let state = v.agent_state || v.state || 'moving';
+    if (state === 'approaching') state = 'moving';
     acc[state] = (acc[state] || 0) + 1;
     return acc;
   }, {});
@@ -282,6 +286,9 @@ function VehicleList({ vehicles }) {
         <div className="state-badge state-moving">
           Moving: {byState.moving || 0}
         </div>
+        <div className="state-badge state-negotiating">
+          Negotiating: {byState.negotiating || 0}
+        </div>
         <div className="state-badge state-waiting">
           Waiting: {byState.waiting || 0}
         </div>
@@ -297,15 +304,19 @@ function VehicleList({ vehicles }) {
       </div>
 
       <div className="vehicle-grid">
-        {vehicles.slice(0, 20).map(v => (
-          <div key={v.id} className={`vehicle-card state-${v.state || 'moving'}`}>
-            <span className="vehicle-id">V{v.id}</span>
-            <span>{v.source} → {v.destination}</span>
-            <span>{v.turn_type}</span>
-            <span>{v.position.toFixed(0)}m</span>
-            <span>{v.speed.toFixed(1)}m/s</span>
-          </div>
-        ))}
+        {vehicles.slice(0, 20).map(v => {
+          let displayState = v.agent_state || v.state || 'moving';
+          if (displayState === 'approaching') displayState = 'moving';
+          return (
+            <div key={v.id} className={`vehicle-card state-${displayState}`}>
+              <span className="vehicle-id">V{v.id}</span>
+              <span>{v.source} → {v.destination}</span>
+              <span>{v.turn_type}</span>
+              <span>{v.position.toFixed(0)}m</span>
+              <span>{v.speed.toFixed(1)}m/s</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -105,6 +105,9 @@ export default function ControlPanel() {
                     : safetyPct >= 80 ? '#ffb84a'
                     : '#ff4444';
 
+  const totalWaitTime = vehicles.reduce((sum, v) => sum + (v.waiting_time || 0), 0);
+  const avgWaitTime = vehicles.length > 0 ? (totalWaitTime / vehicles.length).toFixed(1) : "0.0";
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <aside className="cp">
@@ -166,8 +169,8 @@ export default function ControlPanel() {
         <p className="cp-label">Agent States</p>
         <div className="cp-metrics">
           <Metric label="Approaching" value={approaching} accent="#4a9eff" />
-          <Metric label="Negotiating" value={negotiating} accent="#ffd700" />
-          <Metric label="Waiting"     value={waiting}     accent="#ffb84a" />
+          <Metric label="Negotiating" value={negotiating} accent="#fbbf24" />
+          <Metric label="Waiting"     value={waiting}     accent="#f97316" />
           <Metric label="Crossing"    value={crossing}    accent="#44ff88" />
         </div>
       </section>
@@ -177,8 +180,9 @@ export default function ControlPanel() {
         <p className="cp-label">Traffic</p>
         <div className="cp-metrics">
           <Metric label="Moving"        value={byState.moving   ?? 0} accent="#4a9eff" />
-          <Metric label="Waiting"       value={byState.waiting  ?? 0} accent="#ffb84a" />
+          <Metric label="Waiting"       value={byState.waiting  ?? 0} accent="#f97316" />
           <Metric label="Crossing"      value={byState.crossing ?? 0} accent="#44ff88" />
+          <Metric label="Avg Wait (s)"  value={avgWaitTime}            accent="#f97316" />
           <Metric label="Total Vehicles" value={totalVehicles}         accent="#ccc"    />
           <Metric label="Total Spawned" value={totalSpawned}           accent="#ccc"    />
         </div>

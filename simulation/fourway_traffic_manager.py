@@ -192,6 +192,68 @@ class FourWayTrafficManager:
                 if vehicle.state != VehicleState.COLLIDED:
                     self._move_vehicle(vehicle, sub_dt)
 
+        # 6.5. HARD POSITION CLAMP — last line of defense against handover collisions.
+        # Vehicles from the inactive corridor without grants are physically clamped
+        # at the stop line. They CANNOT advance past it regardless of momentum.
+        active_dirs = self.intersection._active_dirs()
+        for vehicle in self.vehicles:
+            if vehicle.state == VehicleState.COLLIDED:
+                continue
+            vid = vehicle.vehicle_id
+            direction = vehicle.route.source
+            has_grant = vid in self.intersection.granted_vehicle_ids
+
+            # Clamp vehicles WITHOUT grants:
+            #  - CLEARANCE: all non-granted vehicles clamped
+            #  - DRAINING: all non-granted vehicles clamped (even draining corridor)
+            #  - ACTIVE: only inactive corridor non-granted vehicles clamped
+            should_clamp = False
+            if self.intersection._handover_state == "CLEARANCE":
+                if not has_grant:
+                    should_clamp = True
+            elif self.intersection._handover_state == "DRAINING":
+                if not has_grant:
+                    should_clamp = True
+            elif direction not in active_dirs and not has_grant:
+                should_clamp = True
+
+            # Exclude vehicles that have already crossed, are currently inside,
+            # are between the stop line and intersection (already passed stop line),
+            # or are otherwise committed to crossing.
+            if (vehicle.has_exited_intersection or 
+                self.intersection.is_in_intersection(vehicle) or
+                self.intersection.is_between_stop_and_intersection(vehicle) or
+                self.intersection.is_committed_to_cross(vehicle)):
+                should_clamp = False
+
+            if should_clamp:
+                stop_pos = self.intersection.get_stop_position(direction)
+                # Clamp position: vehicle cannot advance past stop line
+                if direction == Direction.NORTH:
+                    # North travels downward (decreasing y); stop_pos is above intersection
+                    if vehicle.position < stop_pos:
+                        vehicle.position = stop_pos
+                        vehicle.current_speed = 0.0
+                        vehicle.target_speed = 0.0
+                elif direction == Direction.SOUTH:
+                    # South travels upward (increasing y); stop_pos is below intersection
+                    if vehicle.position > stop_pos:
+                        vehicle.position = stop_pos
+                        vehicle.current_speed = 0.0
+                        vehicle.target_speed = 0.0
+                elif direction == Direction.EAST:
+                    # East travels rightward (increasing x); stop_pos is left of intersection
+                    if vehicle.position > stop_pos:
+                        vehicle.position = stop_pos
+                        vehicle.current_speed = 0.0
+                        vehicle.target_speed = 0.0
+                else:  # WEST
+                    # West travels leftward (decreasing x); stop_pos is right of intersection
+                    if vehicle.position < stop_pos:
+                        vehicle.position = stop_pos
+                        vehicle.current_speed = 0.0
+                        vehicle.target_speed = 0.0
+
         # 7. Collision detection (intersection zone only)
         self._detect_collisions()
 
@@ -292,17 +354,17 @@ class FourWayTrafficManager:
                     ratio = (dist - FOLLOW_MIN_GAP) / (FOLLOW_SAFE_GAP - FOLLOW_MIN_GAP)
                     ratio = max(0.0, min(1.0, ratio))
                     safe_speed = front.current_speed * (0.5 + 0.4 * ratio)
-                    rear.set_target_speed(min(safe_speed, rear.desired_speed * 0.7))
+                    safe_speed = min(safe_speed, rear.desired_speed * 0.7)
+                    if safe_speed < rear.target_speed:
+                        rear.set_target_speed(safe_speed)
                 elif dist < FOLLOW_CAUTION_GAP + hysteresis:
-                    # Ease off slightly
+                    # Ease off slightly, but do not exceed intersection's target speed
                     ratio = (dist - FOLLOW_SAFE_GAP) / (FOLLOW_CAUTION_GAP - FOLLOW_SAFE_GAP)
                     ratio = max(0.0, min(1.0, ratio))
                     safe_speed = rear.desired_speed * (0.8 + 0.15 * ratio)
-                    rear.set_target_speed(min(safe_speed, rear.desired_speed))
-                else:
-                    # Safe gap — vehicle can run at desired speed
-                    if rear.target_speed < rear.desired_speed:
-                        rear.accelerate_to_desired()
+                    # Only reduce speed, never increase beyond what intersection set
+                    if safe_speed < rear.target_speed:
+                        rear.set_target_speed(safe_speed)
 
     # ── Collision detection ───────────────────────────────────────────────────
 
@@ -352,6 +414,15 @@ class FourWayTrafficManager:
             return abs(pos - cx) <= sz
 
     @staticmethod
+    def _are_cross_corridor(va: VehicleAgent, vb: VehicleAgent) -> bool:
+        """Check if two vehicles are from perpendicular corridors (NS vs EW)."""
+        ns_dirs = {Direction.NORTH, Direction.SOUTH}
+        ew_dirs = {Direction.EAST, Direction.WEST}
+        a_ns = va.route.source in ns_dirs
+        b_ns = vb.route.source in ns_dirs
+        return a_ns != b_ns  # One is NS, other is EW
+
+    @staticmethod
     def _aabb_overlap(a: Tuple[float, float, float, float],
                       b: Tuple[float, float, float, float]) -> bool:
         return (a[0] < b[2] and a[2] > b[0] and
@@ -360,12 +431,12 @@ class FourWayTrafficManager:
     def _detect_collisions(self):
         """
         AABB collision detection restricted to the intersection zone.
-        When a new collision is detected:
-          - Both vehicles enter COLLIDED state immediately
-          - Both vehicles stop
-          - A freeze timer is started (COLLISION_FREEZE_DURATION seconds)
-          - The collision is counted exactly once per pair
-        When vehicles separate (or are removed), the pair is cleared.
+        
+        CROSS-CORRIDOR SAFETY: For vehicles from perpendicular corridors
+        (NS vs EW), both must be physically inside the intersection for
+        a collision to be flagged. This prevents false positives from
+        vehicles correctly stopped just outside the boundary whose AABBs
+        slightly overlap due to lane offset geometry.
         """
         # Only consider vehicles near the intersection
         candidates = [v for v in self.vehicles if self._is_near_intersection(v)]
@@ -383,10 +454,19 @@ class FourWayTrafficManager:
                 vb   = candidates[j]
 
                 # Skip pairs where both are already in COLLIDED state
-                # (they've already been counted)
                 if (va.state == VehicleState.COLLIDED and
                         vb.state == VehicleState.COLLIDED):
                     continue
+
+                # CROSS-CORRIDOR FILTER: For perpendicular corridor pairs,
+                # only flag collision when BOTH are inside the intersection.
+                # A vehicle stopped just outside the boundary is safe even if
+                # its AABB barely overlaps with a crossing vehicle's AABB.
+                if self._are_cross_corridor(va, vb):
+                    a_inside = self.intersection.is_in_intersection(va)
+                    b_inside = self.intersection.is_in_intersection(vb)
+                    if not (a_inside and b_inside):
+                        continue
 
                 pair = frozenset((va.vehicle_id, vb.vehicle_id))
 
@@ -411,8 +491,7 @@ class FourWayTrafficManager:
         separated = self._active_collision_pairs - currently_overlapping
         for pair in separated:
             self._active_collision_pairs.discard(pair)
-            # Note: we do NOT clear COLLIDED state here — once collided,
-            # the vehicle stays frozen until its timer expires.
+
 
     # ── Exit detection ────────────────────────────────────────────────────────
 
