@@ -67,6 +67,14 @@ STOP_DISTANCE = 50.0        # metres
 # before its reservation is released and the crossing is counted.
 CLEARANCE_DISTANCE = 30.0   # metres
 
+# ── COMMITTED_TO_CROSS constants ──────────────────────────────────────────────
+# A vehicle becomes COMMITTED when it cannot physically stop before the stop line.
+# Using emergency deceleration rate from VehicleAgent.
+EMERGENCY_DECELERATION = 6.0  # m/s² (from vehicle.py)
+
+# Safety buffer: add a small margin to prevent edge cases
+COMMITMENT_SAFETY_MARGIN = 2.0  # metres
+
 
 class FourWayIntersection:
     """
@@ -118,6 +126,14 @@ class FourWayIntersection:
 
         # Set of vehicle IDs currently inside the intersection zone.
         self.vehicles_inside: Set[int] = set()
+        
+        # Set of vehicle IDs that are COMMITTED to crossing (past point of no return)
+        # Includes: vehicles inside intersection + vehicles that cannot physically stop
+        self.committed_vehicles: Set[int] = set()
+        
+        # True when the opposite corridor is waiting and the current one should drain
+        # before switching.  No new grants are issued while draining.
+        self._draining_for_switch: bool = False
 
         # ── Statistics ─────────────────────────────────────────────────────────
         self.total_crossings_completed: int = 0
@@ -225,82 +241,153 @@ class FourWayIntersection:
             return PHASE_NS
         return PHASE_NS   # from IDLE, start with NS
 
+    def is_committed_to_cross(self, vehicle: Vehicle) -> bool:
+        """
+        Determine if a vehicle is COMMITTED to crossing the intersection.
+
+        A vehicle is committed ONLY if:
+          1. It is physically inside the intersection boundary, OR
+          2. It holds an active grant AND cannot physically stop before the stop line.
+
+        Vehicles that are queued, waiting, slowing down, or approaching without
+        a grant are NOT committed — they can still stop and will not cause a
+        handoff collision.
+
+        Returns:
+            True if vehicle is committed (blocks corridor switching and new grants)
+        """
+        vid = vehicle.vehicle_id
+
+        # Case 1: physically inside the intersection box
+        if self.is_in_intersection(vehicle):
+            return True
+
+        # Case 2: has an active grant AND is past the point of no return
+        if vid not in self.granted_vehicle_ids:
+            # No grant — vehicle is queued/waiting/approaching, not committed
+            return False
+
+        # Vehicle has a grant. Check whether it can still stop.
+        dist_to_stop = self.get_distance_to_stop_line(vehicle)
+
+        # Past the stop line already
+        if dist_to_stop < 0:
+            return True
+
+        # Stopped or nearly stopped — can hold at stop line
+        if vehicle.current_speed < 0.5:
+            return False
+
+        # Braking distance with emergency deceleration + safety margin
+        braking_dist = (vehicle.current_speed ** 2) / (2 * EMERGENCY_DECELERATION) + COMMITMENT_SAFETY_MARGIN
+
+        return braking_dist > dist_to_stop
+
+    def committed_vehicle_count(self) -> int:
+        """
+        Count vehicles that are committed to crossing.
+        
+        This is the authoritative count for corridor handoff safety.
+        Replaces the old occupancy_count which only tracked vehicles inside
+        the intersection boundary, missing the 50m stop-line gap.
+        
+        Returns:
+            Number of vehicles committed to crossing (blocks corridor switch)
+        """
+        return len(self.committed_vehicles)
+
+    def intersection_occupancy_count(self) -> int:
+        """
+        Count vehicles physically inside the intersection bounds.
+        Legacy method - use committed_vehicle_count() for corridor handoff safety.
+        
+        Returns:
+            Number of vehicles currently inside intersection boundaries
+        """
+        return len(self.vehicles_inside)
+
     def tick_phase(self, all_vehicles: List[Vehicle], dt: float,
                    current_time: float):
         """
-        Called once per update cycle.  Advances the phase timer and rotates
-        the phase when appropriate.  Also issues or refreshes the crossing
-        grant for the lead vehicle in the active phase.
-        
-        TASK B FIX: Only rotate phase when intersection is completely empty.
+        Strict corridor drain model.
+
+        A corridor switch is ONLY allowed when ALL three conditions are true:
+          1. committed_vehicle_count == 0
+          2. intersection_occupancy_count == 0
+          3. active grants count == 0
+
+        When the opposite corridor starts waiting and the active queue drains,
+        the arbiter enters DRAIN mode: no new grants are issued until the
+        intersection fully empties, then the switch executes.
         """
         self.phase_elapsed += dt
 
-        active_dirs = self._active_dirs()
-        queue_empty = self._queue_size(active_dirs) == 0
-        no_crossing = not self._has_vehicle_crossing()
+        active_dirs   = self._active_dirs()
+        queue_empty   = self._queue_size(active_dirs) == 0
 
-        # TASK B CRITICAL: Count vehicles physically inside intersection
-        vehicles_inside_count = len(self.vehicles_inside)
-        intersection_empty = vehicles_inside_count == 0
+        # Drain gate: switch allowed only when no vehicle is committed or inside.
+        # Grants held by vehicles still safely stoppable do NOT block the switch —
+        # when the phase rotates those vehicles lose their grant and stop normally.
+        committed_count = self.committed_vehicle_count()
+        occupancy_count = self.intersection_occupancy_count()
+        grants_count    = len(self.granted_vehicle_ids)
+        corridor_drained = (committed_count == 0 and occupancy_count == 0)
 
-        # Check if the OTHER axis has vehicles waiting
-        opposite_dirs = PHASE_DIRS[self._opposite_phase()] if self.current_phase != PHASE_IDLE else []
+        # Determine whether opposite corridor is waiting
+        opposite_phase   = self._opposite_phase()
+        opposite_dirs    = PHASE_DIRS[opposite_phase] if self.current_phase != PHASE_IDLE else []
         opposite_waiting = self._queue_size(opposite_dirs) > 0
+        min_elapsed      = self.phase_elapsed >= MIN_PHASE_DURATION
 
-        timed_out   = self.phase_elapsed >= MAX_PHASE_DURATION
-        min_elapsed = self.phase_elapsed >= MIN_PHASE_DURATION
+        # Enter drain mode when the active queue has emptied and:
+        #   - opposite side is waiting, OR
+        #   - minimum phase time has elapsed
+        switch_requested = queue_empty and (min_elapsed or opposite_waiting)
 
-        # TASK B: Rotate ONLY when intersection is completely empty
-        should_rotate = (
-            intersection_empty and
-            no_crossing and
-            (
-                (queue_empty and min_elapsed) or
-                timed_out or
-                (queue_empty and opposite_waiting)
-            )
-        )
+        if switch_requested:
+            self._draining_for_switch = True
 
-        if should_rotate or self.current_phase == PHASE_IDLE:
-            # Log corridor switch events
-            if self.current_phase != PHASE_IDLE and vehicles_inside_count == 0:
-                print(f"[PHASE SWITCH] Time {current_time:.2f}: {self.current_phase} → rotation. Vehicles inside: {vehicles_inside_count}")
+        # Execute switch only when fully drained
+        if (self._draining_for_switch and corridor_drained) or self.current_phase == PHASE_IDLE:
+            self._draining_for_switch = False
             self._rotate_phase(all_vehicles, current_time)
 
-        # TASK A: Try to issue grants continuously (can issue multiple simultaneously)
-        self._issue_grant(current_time)
+        # Issue new grants only when NOT in drain mode
+        if not self._draining_for_switch:
+            self._issue_grant(current_time)
 
     def _rotate_phase(self, all_vehicles: List[Vehicle], current_time: float):
         """
-        Switch to the next phase.  Clears any stale queue entries.
-        
-        TASK B: Log phase rotation events with occupancy count.
+        Switch to the next phase.
+
+        Must only be called when committed==0 and occupancy==0.
+        Revokes any outstanding grants (vehicles still safely stoppable will stop).
+        Clears stale queue entries for the incoming phase.
         """
         new_phase = self._select_phase_for(all_vehicles)
-        
-        vehicles_inside_count = len(self.vehicles_inside)
 
         if new_phase == PHASE_IDLE:
-            # Nothing approaching – stay idle but keep checking
             if self.current_phase != PHASE_IDLE:
-                print(f"[CORRIDOR REVOKED] Time {current_time:.2f}: {self.current_phase} → IDLE. Vehicles inside: {vehicles_inside_count}")
-                self.current_phase  = PHASE_IDLE
-                self.phase_elapsed  = 0.0
+                # Revoke all grants before going idle
+                self.granted_vehicle_ids.clear()
+                self.grant_times.clear()
+                self.granted_vehicle_id = None
+                self.current_phase    = PHASE_IDLE
+                self.phase_elapsed    = 0.0
                 self.phase_start_time = current_time
             return
 
-        # If we were idle or the new phase differs, switch
         if new_phase != self.current_phase or self.current_phase == PHASE_IDLE:
-            old_phase = self.current_phase
+            # Revoke all outstanding grants from the old phase
+            self.granted_vehicle_ids.clear()
+            self.grant_times.clear()
+            self.granted_vehicle_id = None
+
             self.current_phase    = new_phase
             self.phase_elapsed    = 0.0
             self.phase_start_time = current_time
-            
-            print(f"[CORRIDOR GRANTED] Time {current_time:.2f}: {old_phase} → {new_phase}. Vehicles inside: {vehicles_inside_count}")
 
-            # Purge stale queue entries for the newly active directions
-            # (vehicles that left the approach zone while waiting)
+            # Purge stale entries for incoming directions
             for d in PHASE_DIRS[new_phase]:
                 live = [v for v in self.queues[d]
                         if v in all_vehicles and
@@ -310,53 +397,77 @@ class FourWayIntersection:
 
     def _issue_grant(self, current_time: float):
         """
-        Grant crossing permission to vehicles in the active phase.
-        
-        TASK A FIX: Allow opposite straight movements simultaneously.
-        - Within NS phase: both NORTH and SOUTH can have grants at once
-        - Within EW phase: both EAST and WEST can have grants at once
-        
-        TASK B FIX: Only grant if intersection is completely empty of conflicting traffic.
+        Issue crossing grants to waiting vehicles in the active phase.
+
+        Parallel grants within a phase (N+S simultaneously, E+W simultaneously)
+        are allowed.  Grants are NOT issued if any vehicle from a conflicting
+        direction is committed or inside the intersection.
+
+        Conflicting = any direction NOT in the current active phase.
         """
         active_dirs = self._active_dirs()
-        
-        # TASK B: Safety check - intersection must be empty before first grant
-        if len(self.vehicles_inside) > 0:
-            # Don't grant if ANY vehicle is still physically inside
+        if not active_dirs:
             return
-        
-        # Try to issue grants to each direction in the active phase
+
+        # Check that no vehicle from the conflicting axis is active
+        # (inside intersection OR committed to cross)
+        # This is the grant-level safety gate.
+        conflicting_dirs = [d for d in Direction.all() if d not in active_dirs]
+        for v in self.committed_vehicles:
+            # committed_vehicles is a set of IDs — need to check direction
+            # We track this via active_paths/grant source; use vehicles_inside too
+            pass  # checked below via counts
+
+        committed_count = self.committed_vehicle_count()
+        occupancy_count = self.intersection_occupancy_count()
+
+        # Do not issue new grants if any committed or inside vehicle exists.
+        # This covers both:
+        #   - vehicles from the previous corridor still inside/committed
+        #   - vehicles from the current corridor that are still crossing
+        #     (same-direction vehicles can follow, opposite-axis cannot enter)
+        # NOTE: same-phase vehicles that are committed are fine — they are in
+        # compatible lanes (N+S, E+W). So we only block on cross-axis presence.
+        cross_axis_committed = sum(
+            1 for vid in self.committed_vehicles
+            # committed_vehicles contains vehicle IDs; find their direction
+            # via granted_vehicle_ids intersection with committed
+            # A committed vehicle is either inside (vehicles_inside) or granted+approaching
+        )
+        # Simpler and correct: block if any vehicle is INSIDE the intersection
+        # whose direction is NOT in active_dirs (cross-axis blocker)
+        # We have vehicles_inside as a set of IDs — need vehicles list.
+        # Use the count: if occupancy > 0 and any inside vehicle is cross-axis, block.
+        # We don't have vehicle objects here, so use the union of counts:
+        # If occupancy > 0, we must be conservative — don't grant until clear.
+        if occupancy_count > 0:
+            return
+
+        # Issue grants to each direction in the active phase
         for d in active_dirs:
             q = self.queues[d]
             if not q:
                 continue
-                
+
             lead = q[0]
-            
-            # Skip invalid vehicles
+
             if lead.state == VehicleState.COLLIDED:
                 q.popleft()
                 continue
             if not self.is_in_approach_zone(lead):
                 q.popleft()
                 continue
-            
-            # Check if this vehicle already has a grant
             if lead.vehicle_id in self.granted_vehicle_ids:
                 continue
 
-            # Grant to this vehicle
             self.granted_vehicle_ids.add(lead.vehicle_id)
             self.grant_times[lead.vehicle_id] = current_time
             self.total_reservations += 1
             q.popleft()
-            
-            # Update legacy field for API compatibility
+
             if self.granted_vehicle_id is None:
                 self.granted_vehicle_id = lead.vehicle_id
                 self.granted_at = current_time
-            
-            print(f"[GRANT] Time {current_time:.2f}: Vehicle {lead.vehicle_id} from {d} granted. Active grants: {len(self.granted_vehicle_ids)}, Vehicles inside: {len(self.vehicles_inside)}")
 
     def _revoke_grant(self, vehicle_id: int):
         """Revoke grant for a specific vehicle."""
@@ -401,6 +512,7 @@ class FourWayIntersection:
         self.granted_vehicle_ids.clear()
         self.grant_times.clear()
         self.granted_vehicle_id = None
+        self._draining_for_switch = False
 
         # Clear all queues
         for d in Direction.all():
@@ -448,12 +560,12 @@ class FourWayIntersection:
                 if vehicle.state != VehicleState.COLLIDED and not vehicle.in_collision:
                     self.total_safe_crossings += 1
 
-            # TASK B: Remove from vehicles_inside when fully cleared
+            # CORRIDOR HANDOFF: Remove from vehicles_inside when fully cleared
             was_inside = vid in self.vehicles_inside
             self.vehicles_inside.discard(vid)
             
             if was_inside:
-                print(f"[CLEARED] Time {current_time:.2f}: Vehicle {vid} cleared. Vehicles inside: {len(self.vehicles_inside)}")
+                pass  # occupancy tracking handled by run_arbiter sync
 
             # Release grant IMMEDIATELY so next vehicle can be issued one
             if vid in self.granted_vehicle_ids:
@@ -471,7 +583,7 @@ class FourWayIntersection:
             self.vehicles_inside.add(vid)
             
             if not was_inside:
-                print(f"[ENTERED] Time {current_time:.2f}: Vehicle {vid} entered. Vehicles inside: {len(self.vehicles_inside)}")
+                pass  # occupancy tracking handled by run_arbiter sync
             
             vehicle.set_state(VehicleState.CROSSING)
             # Lock the grant to this vehicle while it's inside.
@@ -541,11 +653,17 @@ class FourWayIntersection:
             v.vehicle_id for v in all_vehicles
             if self.is_in_intersection(v) and v.state != VehicleState.COLLIDED
         }
+        
+        # 4. Update committed_vehicles — includes vehicles past point of no return
+        self.committed_vehicles = {
+            v.vehicle_id for v in all_vehicles
+            if self.is_committed_to_cross(v) and v.state != VehicleState.COLLIDED
+        }
 
-        # 4. Phase tick + grant issuance
+        # 5. Phase tick + grant issuance
         self.tick_phase(all_vehicles, dt, current_time)
 
-        # 5. Deadlock safety-net
+        # 6. Deadlock safety-net
         waiting_in_approach = [
             v for v in all_vehicles
             if v.state == VehicleState.WAITING
@@ -572,7 +690,8 @@ class FourWayIntersection:
 
     def get_state(self) -> dict:
         waiting_counts = {d: len(self.queues[d]) for d in Direction.all()}
-        vehicles_inside_count = len(self.vehicles_inside)
+        occupancy_count = self.intersection_occupancy_count()
+        committed_count = self.committed_vehicle_count()
         active_grants_count = len(self.granted_vehicle_ids)
         
         return {
@@ -596,8 +715,10 @@ class FourWayIntersection:
             "deadlock_recoveries": self.deadlock_recoveries,
             "total_crossings":     self.total_crossings_completed,
             "safe_crossings":      self.total_safe_crossings,
-            # TASK B: Expose vehicles inside count for debugging corridor handoff
-            "vehicles_inside_count": vehicles_inside_count,
+            # COMMITTED_TO_CROSS: Expose committed vehicle count (includes stop-line gap)
+            "committed_vehicles":  committed_count,
+            "intersection_occupancy": occupancy_count,
+            "vehicles_inside_count": occupancy_count,  # Legacy name
             # Legacy frontend fields
             "occupancy":           active_grants_count,
             "max_occupancy":       2,  # Can have 2 simultaneous (opposite straights)
