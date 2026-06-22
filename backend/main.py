@@ -69,13 +69,14 @@ class SimulationSpeedRequest(BaseModel):
 def simulation_loop():
     """
     Background simulation loop.
-    Runs at a fixed 60 Hz tick rate regardless of simulation_speed.
-    simulation_speed scales the dt passed to manager.update() so vehicles
-    move faster/slower without changing the tick frequency.
+    Ticks at a target frequency of 60 Hz.
+    Dynamically tracks real elapsed time (real_dt) between ticks and scales it by
+    simulation_speed to ensure precise simulation movement speed even with Windows
+    scheduler/timer sleeping latency.
     """
     global simulation_running, simulation_paused, TARGET_VEHICLE_COUNT
 
-    TICK_HZ   = 60          # fixed tick rate - increased from 10 Hz for smooth movement
+    TICK_HZ   = 60          # target tick rate - increased from 10 Hz for smooth movement
     TICK_SEC  = 1.0 / TICK_HZ
 
     # Spawn initial vehicles with small gaps between them
@@ -89,15 +90,21 @@ def simulation_loop():
         attempts += 1
         time.sleep(0.15)
 
-    print(f"✓ Spawned {spawned} initial vehicles")
+    print(f"[OK] Spawned {spawned} initial vehicles")
 
+    last_tick_time = time.monotonic()
     while simulation_running:
         tick_start = time.monotonic()
+        real_dt = tick_start - last_tick_time
+        last_tick_time = tick_start
+
+        # Cap real_dt at a safe maximum (e.g. 0.1s) to prevent huge jumps if thread is suspended
+        real_dt = min(real_dt, 0.1)
 
         if not simulation_paused:
             with simulation_lock:
                 # dt = real elapsed time × speed multiplier
-                manager.update(dt=TICK_SEC * simulation_speed)
+                manager.update(dt=real_dt * simulation_speed)
 
                 # Auto-spawn to maintain target count (one attempt per tick)
                 if len(manager.vehicles) < TARGET_VEHICLE_COUNT:
@@ -108,7 +115,8 @@ def simulation_loop():
         # Sleep for the remainder of the tick
         elapsed = time.monotonic() - tick_start
         sleep_for = max(0.0, TICK_SEC - elapsed)
-        time.sleep(sleep_for)
+        if sleep_for > 0:
+            time.sleep(sleep_for)
 
 
 @app.on_event("startup")
@@ -118,11 +126,11 @@ def startup_event():
     simulation_running = True
     thread = threading.Thread(target=simulation_loop, daemon=True)
     thread.start()
-    print("✓ 4-Way Intersection simulation started (PATH-BASED RESERVATION)")
-    print(f"✓ Intersection at ({intersection.center_x}, {intersection.center_y})")
-    print(f"✓ Target vehicles: {TARGET_VEHICLE_COUNT}, Max: {MAX_VEHICLE_COUNT}")
-    print(f"✓ Reservation system: Comprehensive conflict detection")
-    print(f"✓ Zero-collision guarantee through trajectory reservation")
+    print("[OK] 4-Way Intersection simulation started (PATH-BASED RESERVATION)")
+    print(f"[OK] Intersection at ({intersection.center_x}, {intersection.center_y})")
+    print(f"[OK] Target vehicles: {TARGET_VEHICLE_COUNT}, Max: {MAX_VEHICLE_COUNT}")
+    print(f"[OK] Reservation system: Comprehensive conflict detection")
+    print(f"[OK] Zero-collision guarantee through trajectory reservation")
 
 
 @app.on_event("shutdown")
@@ -130,7 +138,7 @@ def shutdown_event():
     """Stop the simulation when the server shuts down."""
     global simulation_running
     simulation_running = False
-    print("✓ Simulation thread stopped")
+    print("[OK] Simulation thread stopped")
 
 
 # --- API Endpoints ---
@@ -154,6 +162,34 @@ def home():
             "/traffic/info": "Get road configuration",
             "/intersection/state": "Get intersection state"
         }
+    }
+
+
+@app.get("/simulation/state")
+def get_simulation_state():
+    """Return consolidated simulation state in a single payload to minimize network request overhead."""
+    with simulation_lock:
+        vehicles_state = manager.get_state()
+        intersection_state = intersection.get_state()
+        safety_stats = manager.get_safety_stats()
+        agent_state_counts = manager.get_agent_state_counts()
+        control_status = {
+            "running":               simulation_running,
+            "paused":                simulation_paused,
+            "speed":                 simulation_speed,
+            "target_vehicle_count":  TARGET_VEHICLE_COUNT,
+            "max_vehicle_count":     MAX_VEHICLE_COUNT,
+            "current_vehicle_count": len(manager.vehicles),
+            "total_spawned":         manager.total_spawned,
+        }
+    
+    return {
+        "vehicles": vehicles_state,
+        "intersection": intersection_state,
+        "safety": safety_stats,
+        "agent_states": agent_state_counts,
+        "control": control_status,
+        "timestamp": time.time()
     }
 
 
@@ -310,8 +346,8 @@ def update_simulation_speed(request: SimulationSpeedRequest):
     global simulation_speed
     
     # Validate
-    if request.speed <= 0 or request.speed > 4.0:
-        raise HTTPException(status_code=400, detail="Speed must be between 0.1 and 4.0")
+    if request.speed <= 0 or request.speed > 16.0:
+        raise HTTPException(status_code=400, detail="Speed must be between 0.1 and 16.0")
     
     simulation_speed = request.speed
     

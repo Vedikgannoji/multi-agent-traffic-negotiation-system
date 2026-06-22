@@ -13,11 +13,13 @@ try:
     from simulation.vehicle import VehicleAgent, VehicleState, AgentState
     from simulation.direction import Direction, Route
     from simulation.fourway_intersection import FourWayIntersection
+    from simulation.communication import MessageBus
 except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))
     from vehicle import VehicleAgent, VehicleState, AgentState
     from direction import Direction, Route
     from fourway_intersection import FourWayIntersection
+    from communication import MessageBus
 
 # ── Vehicle dimensions (simulation metres, matching SVG pixels 1:1) ──────────
 # SVG car rect: width=12, height=24.  Position is the centre of the car.
@@ -68,6 +70,7 @@ class FourWayTrafficManager:
         self.road_length  = road_length
         self.vehicles: list[VehicleAgent] = []
         self._next_id = 1
+        self.message_bus  = MessageBus()
 
         cx = intersection.center_x
         cy = intersection.center_y
@@ -148,6 +151,41 @@ class FourWayTrafficManager:
         # This makes the arbiter deterministic and avoids timing-dependent races.
         self._sim_time += dt
         current_time = self._sim_time
+
+        # ── V2V Communication Step ────────────────────────────────────────────
+        # 1. Broadcasters: Each vehicle broadcasts its STATUS if interval is reached
+        for vehicle in self.vehicles:
+            if vehicle.state != VehicleState.COLLIDED:
+                vehicle.broadcast_status(self.message_bus, current_time, interval=0.1)
+
+        # 2. Receivers: Each vehicle receives messages and updates known_agents
+        for vehicle in self.vehicles:
+            if vehicle.state != VehicleState.COLLIDED:
+                vehicle.receive_messages(
+                    self.message_bus,
+                    center_x=self.intersection.center_x,
+                    center_y=self.intersection.center_y,
+                    range_threshold=150.0
+                )
+
+        # 3. Prune exited or out-of-range vehicles from known_agents
+        active_agents = {v.agent_id: v for v in self.vehicles}
+        for vehicle in self.vehicles:
+            if vehicle.state != VehicleState.COLLIDED:
+                my_x, my_y = vehicle.get_2d_position(self.intersection.center_x, self.intersection.center_y)
+                pruned_known = {}
+                for aid, info in vehicle.known_agents.items():
+                    if aid in active_agents:
+                        sender = active_agents[aid]
+                        sender_x, sender_y = sender.get_2d_position(self.intersection.center_x, self.intersection.center_y)
+                        import math
+                        dist = math.sqrt((my_x - sender_x) ** 2 + (my_y - sender_y) ** 2)
+                        if dist <= 150.0:
+                            pruned_known[aid] = info
+                vehicle.known_agents = pruned_known
+
+        # 4. Clear message bus for the next tick
+        self.message_bus.clear_processed()
 
         # 1. Tick collision freeze timers
         self._tick_collision_timers(dt)

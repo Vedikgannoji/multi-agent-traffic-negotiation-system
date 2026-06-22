@@ -1,82 +1,53 @@
 import { useState, useEffect } from 'react';
 import './ControlPanel.css';
 
-const API_URL = 'http://localhost:8000';
+export default function ControlPanel({ simulationState, isConnected, onControlAction }) {
+  const control = simulationState?.control || null;
+  const vehicles = simulationState?.vehicles || [];
+  const safety = simulationState?.safety || null;
+  const agentStates = simulationState?.agent_states || null;
 
-export default function ControlPanel() {
-  const [status,   setStatus]   = useState(null);
-  const [vehicles, setVehicles] = useState([]);
-  const [safety,   setSafety]   = useState(null);
-  const [agentStates, setAgentStates] = useState(null);
-  const [target,   setTarget]   = useState(4);
-  const [speed,    setSpeed]    = useState(1.0);
-  const [paused,   setPaused]   = useState(false);
+  // Local state for immediate slider tracking, synced to control.target_vehicle_count on update
+  const [sliderTarget, setSliderTarget] = useState(4);
 
-  // ── Poll all endpoints every second ─────────────────────────────────────
   useEffect(() => {
-    let cancelled = false;
+    if (control?.target_vehicle_count !== undefined) {
+      setSliderTarget(control.target_vehicle_count);
+    }
+  }, [control?.target_vehicle_count]);
 
-    const tick = async () => {
-      try {
-        const [ctrl, traffic, safetyData, agentStateData] = await Promise.all([
-          fetch(`${API_URL}/control/status`).then(r => r.json()),
-          fetch(`${API_URL}/traffic/state`).then(r => r.json()),
-          fetch(`${API_URL}/safety/stats`).then(r => r.json()),
-          fetch(`${API_URL}/agents/state-counts`).then(r => r.json()),
-        ]);
-        if (cancelled) return;
+  if (!isConnected || !simulationState) {
+    return (
+      <aside className="cp cp--offline">
+        <div className="cp-header">
+          <span className="cp-title">Control Panel</span>
+        </div>
+        <div style={{ padding: '2rem 1rem', color: '#666', fontSize: '0.85rem', textAlign: 'center' }}>
+          Awaiting simulation connection...
+        </div>
+      </aside>
+    );
+  }
 
-        setStatus(ctrl);
-        setVehicles(traffic.vehicles ?? []);
-        setSafety(safetyData);
-        setAgentStates(agentStateData);
-        setTarget(ctrl.target_vehicle_count);
-        setSpeed(ctrl.speed);
-        setPaused(ctrl.paused);
-      } catch (_) {}
-    };
-
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
+  const speed = control?.speed || 1.0;
+  const paused = control?.paused || false;
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  const setSimSpeed = async (v) => {
-    setSpeed(v);
-    try {
-      await fetch(`${API_URL}/control/speed`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ speed: v }),
-      });
-    } catch (_) {}
+  const setSimSpeed = (v) => {
+    onControlAction('/control/speed', 'POST', { speed: v });
   };
 
-  const togglePause = async () => {
-    const next = !paused;
-    setPaused(next);
-    try {
-      await fetch(`${API_URL}/control/${next ? 'pause' : 'resume'}`, { method: 'POST' });
-    } catch (_) {}
+  const togglePause = () => {
+    onControlAction(`/control/${paused ? 'resume' : 'pause'}`, 'POST');
   };
 
-  const reset = async () => {
-    try {
-      await fetch(`${API_URL}/control/reset`, { method: 'POST' });
-    } catch (_) {}
+  const reset = () => {
+    onControlAction('/control/reset', 'POST');
   };
 
-  const updateCount = async (n) => {
-    setTarget(n);
-    try {
-      await fetch(`${API_URL}/control/vehicle-count`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target_count: n }),
-      });
-    } catch (_) {}
+  const updateCount = (n) => {
+    onControlAction('/control/vehicle-count', 'POST', { target_count: n });
   };
 
   // ── Derived metrics ───────────────────────────────────────────────────────
@@ -86,20 +57,18 @@ export default function ControlPanel() {
   }, {});
 
   const totalVehicles  = vehicles.length;
-  const totalSpawned   = status?.total_spawned    ?? 0;
-  const maxVehicles    = status?.max_vehicle_count ?? 20;
+  const totalSpawned   = control?.total_spawned    ?? 0;
+  const maxVehicles    = control?.max_vehicle_count ?? 20;
 
   const collisions     = safety?.total_collisions       ?? 0;
   const safeCrossings  = safety?.total_safe_crossings   ?? 0;
   const failedCrossings = safety?.total_failed_crossings ?? 0;
   const safetyPct      = safety?.safety_accuracy_pct    ?? 100;
 
-  // Phase 1: Agent state counts
   const approaching = agentStates?.approaching ?? 0;
   const negotiating = agentStates?.negotiating ?? 0;
   const waiting     = agentStates?.waiting ?? 0;
   const crossing    = agentStates?.crossing ?? 0;
-  const exited      = agentStates?.exited ?? 0;
 
   const safetyColor = safetyPct >= 95 ? '#44ff88'
                     : safetyPct >= 80 ? '#ffb84a'
@@ -108,7 +77,6 @@ export default function ControlPanel() {
   const totalWaitTime = vehicles.reduce((sum, v) => sum + (v.waiting_time || 0), 0);
   const avgWaitTime = vehicles.length > 0 ? (totalWaitTime / vehicles.length).toFixed(1) : "0.0";
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <aside className="cp">
 
@@ -134,8 +102,8 @@ export default function ControlPanel() {
             ↺ Reset
           </button>
         </div>
-        <div className="cp-row cp-row--3">
-          {[1, 2, 4].map(s => (
+        <div className="cp-row cp-row--5">
+          {[1, 2, 4, 8, 16].map(s => (
             <button
               key={s}
               className={`cp-btn cp-btn--speed ${speed === s ? 'cp-btn--speed-active' : ''}`}
@@ -151,14 +119,14 @@ export default function ControlPanel() {
       <section className="cp-section">
         <div className="cp-label-row">
           <p className="cp-label">Vehicle Density</p>
-          <span className="cp-count">{target}</span>
+          <span className="cp-count">{sliderTarget}</span>
         </div>
         <input
-          type="range" min="0" max="20" value={target}
+          type="range" min="0" max="20" value={sliderTarget}
           className="cp-slider"
-          onChange={e => setTarget(+e.target.value)}
-          onMouseUp={e => updateCount(+e.target.value)}
-          onTouchEnd={e => updateCount(+e.target.value)}
+          onChange={e => setSliderTarget(+e.target.value)}
+          onMouseUp={e => updateCount(sliderTarget)}
+          onTouchEnd={e => updateCount(sliderTarget)}
         />
         <div className="cp-slider-ends"><span>0</span><span>20</span></div>
         <p className="cp-hint">{totalVehicles} / {maxVehicles} active</p>

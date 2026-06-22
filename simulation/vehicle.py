@@ -85,6 +85,13 @@ class VehicleAgent:
         # Collision handling
         self.collision_freeze_timer: float = 0.0
 
+        # V2V identity and communication fields
+        self.agent_id = str(vehicle_id)
+        self.known_agents = {}
+        self.message_inbox = []
+        self.message_outbox = []
+        self._last_broadcast_time = -1.0
+
     @property
     def speed(self) -> float:
         return self.current_speed
@@ -166,6 +173,75 @@ class VehicleAgent:
     def slow_down(self, t: float):         self.slow_to_speed(t)
     def speed_up(self):                    self.accelerate_to_desired()
     def update_physics(self, dt: float):   pass
+
+    def get_2d_position(self, center_x: float = 250.0, center_y: float = 250.0, lane_offset: float = 12.0) -> tuple:
+        """Calculate 2D coordinates (x, y) based on 1D position along direction."""
+        src = self.route.source
+        pos = self.position
+        if src == "north":
+            return center_x - lane_offset, pos
+        elif src == "south":
+            return center_x + lane_offset, pos
+        elif src == "east":
+            return pos, center_y - lane_offset
+        else:  # west
+            return pos, center_y + lane_offset
+
+    @staticmethod
+    def calculate_2d_position(direction: str, position: float, center_x: float = 250.0, center_y: float = 250.0, lane_offset: float = 12.0) -> tuple:
+        """Calculate 2D coordinates (x, y) for any arbitrary vehicle direction and position."""
+        if direction == "north":
+            return center_x - lane_offset, position
+        elif direction == "south":
+            return center_x + lane_offset, position
+        elif direction == "east":
+            return position, center_y - lane_offset
+        else:  # west
+            return position, center_y + lane_offset
+
+    def broadcast_status(self, message_bus, current_time: float, force: bool = False, interval: float = 0.1):
+        """Broadcast status message if interval has elapsed since last broadcast."""
+        from simulation.communication import VehicleMessage, MessageType
+        
+        if force or (current_time - self._last_broadcast_time >= interval):
+            payload = {
+                "position": self.position,
+                "speed": self.current_speed,
+                "direction": self.route.source,
+                "destination": self.route.destination,
+                "current_state": self.agent_state.value
+            }
+            msg = VehicleMessage(
+                sender_id=self.agent_id,
+                timestamp=current_time,
+                message_type=MessageType.STATUS,
+                payload=payload
+            )
+            message_bus.broadcast(msg)
+            self.message_outbox.append(msg)
+            self._last_broadcast_time = current_time
+
+    def receive_messages(self, message_bus, center_x: float = 250.0, center_y: float = 250.0, lane_offset: float = 12.0, range_threshold: float = 150.0):
+        """Receive messages from the message bus and process STATUS messages within range."""
+        from simulation.communication import MessageType
+        
+        messages = message_bus.receive(self.agent_id)
+        my_x, my_y = self.get_2d_position(center_x, center_y, lane_offset)
+        
+        for msg in messages:
+            self.message_inbox.append(msg)
+            if msg.message_type == MessageType.STATUS:
+                sender_dir = msg.payload.get("direction")
+                sender_pos = msg.payload.get("position")
+                if sender_dir is not None and sender_pos is not None:
+                    sender_x, sender_y = self.calculate_2d_position(sender_dir, sender_pos, center_x, center_y, lane_offset)
+                    import math
+                    dist = math.sqrt((my_x - sender_x) ** 2 + (my_y - sender_y) ** 2)
+                    if dist <= range_threshold:
+                        self.known_agents[msg.sender_id] = msg.payload
+                    else:
+                        # Prune if too far
+                        self.known_agents.pop(msg.sender_id, None)
 
     def __repr__(self):
         return (f"VehicleAgent(id={self.vehicle_id}, route={self.route}, "

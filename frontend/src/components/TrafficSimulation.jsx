@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './TrafficSimulation.css';
 
-const API_URL = 'http://localhost:8000';
-const POLL_INTERVAL = 100; // Reduced from 1000ms to 100ms for smoother updates
+const POLL_INTERVAL = 100; // Interpolation period reference
 
 // ─── Interpolation engine ────────────────────────────────────────────────────
 class VehicleInterpolator {
@@ -71,40 +70,18 @@ class VehicleInterpolator {
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
-export default function TrafficSimulation() {
+export default function TrafficSimulation({ backendVehicles, intersectionState, roadInfo, isConnected }) {
   const [vehicles, setVehicles]             = useState([]);
-  const [intersectionState, setIntersection] = useState(null);
-  const [roadInfo, setRoadInfo]             = useState(null);
-  const [isConnected, setIsConnected]       = useState(false);
 
   const interpolatorRef    = useRef(new VehicleInterpolator());
   const animationFrameRef  = useRef(null);
 
-  // Initial connection
+  // Update target coordinates whenever new backend vehicles arrive
   useEffect(() => {
-    fetch(`${API_URL}/traffic/info`)
-      .then(r => r.json())
-      .then(d => { setRoadInfo(d); setIsConnected(true); })
-      .catch(() => setIsConnected(false));
-  }, []);
-
-  // Backend polling
-  useEffect(() => {
-    if (!isConnected) return;
-    const poll = () => {
-      const ts = Date.now();
-      Promise.all([
-        fetch(`${API_URL}/traffic/state`).then(r => r.json()),
-        fetch(`${API_URL}/intersection/state`).then(r => r.json()),
-      ]).then(([traffic, intersection]) => {
-        setIntersection(intersection);
-        interpolatorRef.current.updateTargets(traffic.vehicles, ts);
-      }).catch(() => {});
-    };
-    poll();
-    const id = setInterval(poll, POLL_INTERVAL);
-    return () => clearInterval(id);
-  }, [isConnected]);
+    if (backendVehicles) {
+      interpolatorRef.current.updateTargets(backendVehicles, Date.now());
+    }
+  }, [backendVehicles]);
 
   // 60 fps render loop
   useEffect(() => {
