@@ -173,6 +173,7 @@ def get_simulation_state():
         intersection_state = intersection.get_state()
         safety_stats = manager.get_safety_stats()
         agent_state_counts = manager.get_agent_state_counts()
+        v2v_stats = manager.get_v2v_stats()
         control_status = {
             "running":               simulation_running,
             "paused":                simulation_paused,
@@ -189,6 +190,7 @@ def get_simulation_state():
         "safety": safety_stats,
         "agent_states": agent_state_counts,
         "control": control_status,
+        "v2v": v2v_stats,
         "timestamp": time.time()
     }
 
@@ -410,6 +412,10 @@ def reset_simulation():
         manager._active_collision_pairs.clear()
         manager._colliding_ids.clear()
 
+        # Reset V2V stats
+        manager.total_messages_sent = 0
+        manager.total_messages_received = 0
+
         # Reset intersection state (phase-based arbiter)
         intersection.granted_vehicle_id        = None
         intersection.granted_vehicle_ids.clear()
@@ -469,3 +475,10 @@ def get_control_status():
             "current_vehicle_count": len(manager.vehicles),
             "total_spawned":         manager.total_spawned,
         }
+
+
+@app.get("/v2v/stats")
+def get_v2v_stats():
+    """Return aggregated V2V awareness metrics."""
+    with simulation_lock:
+        return manager.get_v2v_stats()

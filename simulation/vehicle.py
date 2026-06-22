@@ -92,6 +92,15 @@ class VehicleAgent:
         self.message_outbox = []
         self._last_broadcast_time = -1.0
 
+        # V2V Awareness properties
+        self.neighbor_count = 0
+        self.closest_vehicle_id = None
+        self.closest_vehicle_distance = float('inf')
+        self.average_neighbor_speed = 0.0
+        self.local_density = 0.0
+        self.vehicles_ahead_count = 0
+        self.vehicles_behind_count = 0
+
     @property
     def speed(self) -> float:
         return self.current_speed
@@ -242,6 +251,95 @@ class VehicleAgent:
                     else:
                         # Prune if too far
                         self.known_agents.pop(msg.sender_id, None)
+
+    def update_awareness(self, center_x: float = 250.0, center_y: float = 250.0, lane_offset: float = 12.0):
+        """Update awareness properties based on current known_agents."""
+        import math
+        
+        self.neighbor_count = len(self.known_agents)
+        
+        if not self.known_agents:
+            self.closest_vehicle_id = None
+            self.closest_vehicle_distance = float('inf')
+            self.average_neighbor_speed = 0.0
+            self.local_density = 0.0
+            self.vehicles_ahead_count = 0
+            self.vehicles_behind_count = 0
+            return
+
+        my_x, my_y = self.get_2d_position(center_x, center_y, lane_offset)
+        
+        closest_id = None
+        min_dist = float('inf')
+        total_speed = 0.0
+        ahead_count = 0
+        behind_count = 0
+        
+        my_dir = self.route.source
+        is_ns = my_dir in ("north", "south")
+        
+        for aid, info in self.known_agents.items():
+            other_dir = info.get("direction")
+            other_pos = info.get("position")
+            other_speed = info.get("speed", 0.0)
+            
+            total_speed += other_speed
+            
+            # 2D coordinates for distance
+            other_x, other_y = self.calculate_2d_position(other_dir, other_pos, center_x, center_y, lane_offset)
+            dist = math.sqrt((my_x - other_x) ** 2 + (my_y - other_y) ** 2)
+            
+            if dist < min_dist:
+                min_dist = dist
+                closest_id = aid
+                
+            # Corridor check
+            other_is_ns = other_dir in ("north", "south")
+            if is_ns == other_is_ns:
+                # Same travel corridor
+                if my_dir == "north":
+                    if other_y < my_y:
+                        ahead_count += 1
+                    elif other_y > my_y:
+                        behind_count += 1
+                elif my_dir == "south":
+                    if other_y > my_y:
+                        ahead_count += 1
+                    elif other_y < my_y:
+                        behind_count += 1
+                elif my_dir == "east":
+                    if other_x > my_x:
+                        ahead_count += 1
+                    elif other_x < my_x:
+                        behind_count += 1
+                elif my_dir == "west":
+                    if other_x < my_x:
+                        ahead_count += 1
+                    elif other_x > my_x:
+                        behind_count += 1
+                        
+        self.closest_vehicle_id = closest_id
+        self.closest_vehicle_distance = min_dist
+        self.average_neighbor_speed = total_speed / self.neighbor_count
+        self.local_density = self.neighbor_count / 150.0
+        self.vehicles_ahead_count = ahead_count
+        self.vehicles_behind_count = behind_count
+
+    def get_closest_vehicle(self) -> str:
+        """Return the vehicle ID of the closest vehicle in communication range."""
+        return self.closest_vehicle_id
+
+    def get_neighbor_summary(self) -> dict:
+        """Return a dictionary summary of all neighbor-related awareness metrics."""
+        return {
+            "neighbor_count": self.neighbor_count,
+            "closest_vehicle_id": self.closest_vehicle_id,
+            "closest_vehicle_distance": self.closest_vehicle_distance,
+            "average_neighbor_speed": self.average_neighbor_speed,
+            "local_density": self.local_density,
+            "vehicles_ahead_count": self.vehicles_ahead_count,
+            "vehicles_behind_count": self.vehicles_behind_count
+        }
 
     def __repr__(self):
         return (f"VehicleAgent(id={self.vehicle_id}, route={self.route}, "

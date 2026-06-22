@@ -6,6 +6,7 @@ export default function ControlPanel({ simulationState, isConnected, onControlAc
   const vehicles = simulationState?.vehicles || [];
   const safety = simulationState?.safety || null;
   const agentStates = simulationState?.agent_states || null;
+  const v2v = simulationState?.v2v || null;
 
   // Local state for immediate slider tracking, synced to control.target_vehicle_count on update
   const [sliderTarget, setSliderTarget] = useState(4);
@@ -153,6 +154,18 @@ export default function ControlPanel({ simulationState, isConnected, onControlAc
           <Metric label="Avg Wait (s)"  value={avgWaitTime}            accent="#f97316" />
           <Metric label="Total Vehicles" value={totalVehicles}         accent="#ccc"    />
           <Metric label="Total Spawned" value={totalSpawned}           accent="#ccc"    />
+        </div>
+      </section>
+
+      {/* ── Section 4.5: V2V Awareness ── */}
+      <section className="cp-section">
+        <p className="cp-label">V2V Awareness</p>
+        <div className="cp-metrics">
+          <Metric label="Total Messages Sent" value={v2v?.total_messages_sent ?? 0} accent="#4a9eff" />
+          <Metric label="Total Messages Received" value={v2v?.total_messages_received ?? 0} accent="#4a9eff" />
+          <Metric label="Avg Neighbors per Vehicle" value={v2v?.average_neighbors_per_vehicle ?? "0.0"} accent="#fbbf24" />
+          <Metric label="Avg Local Density" value={v2v?.average_local_density !== undefined ? v2v.average_local_density.toFixed(4) : "0.0000"} accent="#f97316" />
+          <Metric label="Avg Closest Distance" value={v2v?.average_closest_vehicle_distance !== undefined && v2v.average_closest_vehicle_distance > 0 ? `${v2v.average_closest_vehicle_distance.toFixed(1)} m` : "N/A"} accent="#44ff88" />
         </div>
       </section>
 

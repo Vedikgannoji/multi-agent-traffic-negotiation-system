@@ -94,6 +94,10 @@ class FourWayTrafficManager:
         self.total_spawned  = 0
         self.total_removed  = 0
 
+        # ── V2V Statistics ────────────────────────────────────────────────────
+        self.total_messages_sent = 0
+        self.total_messages_received = 0
+
         # ── Simulation clock (deterministic, advances with dt) ────────────────
         self._sim_time: float = 0.0
 
@@ -183,6 +187,15 @@ class FourWayTrafficManager:
                         if dist <= 150.0:
                             pruned_known[aid] = info
                 vehicle.known_agents = pruned_known
+
+        # 3.5. Update vehicle awareness layer properties
+        for vehicle in self.vehicles:
+            if vehicle.state != VehicleState.COLLIDED:
+                vehicle.update_awareness(
+                    center_x=self.intersection.center_x,
+                    center_y=self.intersection.center_y,
+                    lane_offset=LANE_OFFSET
+                )
 
         # 4. Clear message bus for the next tick
         self.message_bus.clear_processed()
@@ -537,6 +550,9 @@ class FourWayTrafficManager:
         """Clean up vehicle data when it exits."""
         vid = vehicle.vehicle_id
         self._colliding_ids.discard(vid)
+        # Accumulate message metrics
+        self.total_messages_sent += len(vehicle.message_outbox)
+        self.total_messages_received += len(vehicle.message_inbox)
 
     def _has_exited(self, vehicle: VehicleAgent) -> bool:
         # COLLIDED vehicles are removed by their freeze timer, not by exit threshold
@@ -571,6 +587,13 @@ class FourWayTrafficManager:
                 "waiting_time": round(v.waiting_time, 2),
                 "priority":    round(v.priority, 2),
                 "colliding":   v.vehicle_id in colliding,
+                "neighbor_count": v.neighbor_count,
+                "closest_vehicle_id": v.closest_vehicle_id,
+                "closest_vehicle_distance": round(v.closest_vehicle_distance, 2) if v.closest_vehicle_distance != float('inf') else None,
+                "average_neighbor_speed": round(v.average_neighbor_speed, 2),
+                "local_density": round(v.local_density, 4),
+                "vehicles_ahead_count": v.vehicles_ahead_count,
+                "vehicles_behind_count": v.vehicles_behind_count,
             }
             for v in self.vehicles
         ]
@@ -600,6 +623,34 @@ class FourWayTrafficManager:
             "safety_accuracy_pct":     accuracy,
             "currently_colliding":     len(self._active_collision_pairs),
             "deadlock_recoveries":     self.intersection.deadlock_recoveries,
+        }
+
+    def get_v2v_stats(self) -> dict:
+        """Calculate and return aggregated V2V awareness metrics."""
+        active_vehicles = self.vehicles
+        num_active = len(active_vehicles)
+        
+        total_sent = self.total_messages_sent + sum(len(v.message_outbox) for v in active_vehicles)
+        total_received = self.total_messages_received + sum(len(v.message_inbox) for v in active_vehicles)
+        
+        avg_neighbors = 0.0
+        avg_density = 0.0
+        avg_closest_dist = 0.0
+        
+        if num_active > 0:
+            avg_neighbors = sum(v.neighbor_count for v in active_vehicles) / num_active
+            avg_density = sum(v.local_density for v in active_vehicles) / num_active
+            
+            valid_dists = [v.closest_vehicle_distance for v in active_vehicles if v.neighbor_count > 0]
+            if valid_dists:
+                avg_closest_dist = sum(valid_dists) / len(valid_dists)
+                
+        return {
+            "total_messages_sent": total_sent,
+            "total_messages_received": total_received,
+            "average_neighbors_per_vehicle": round(avg_neighbors, 2),
+            "average_local_density": round(avg_density, 4),
+            "average_closest_vehicle_distance": round(avg_closest_dist, 2)
         }
 
     def get_agent_state_counts(self) -> dict:
