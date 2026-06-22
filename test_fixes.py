@@ -23,14 +23,14 @@ def test_opposite_straights():
     v_north = Vehicle(
         vehicle_id=1,
         route=Route(Direction.NORTH, Direction.SOUTH),
-        position=310.0,  # In approach zone (y_max=270, approach=270-370)
+        position=340.0,  # In approach zone and before stop line (stop_pos=320)
         desired_speed=18.0
     )
     
     v_south = Vehicle(
         vehicle_id=2,
         route=Route(Direction.SOUTH, Direction.NORTH),
-        position=190.0,  # In approach zone (y_min=230, approach=130-230)
+        position=160.0,  # In approach zone and before stop line (stop_pos=180)
         desired_speed=18.0
     )
     

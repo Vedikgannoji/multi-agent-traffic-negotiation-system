@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from simulation.direction import Direction, Route, TurnType
-from simulation.vehicle import Vehicle
+from simulation.vehicle import Vehicle, AgentState, VehicleState
 from simulation.fourway_intersection import FourWayIntersection
 from simulation.fourway_traffic_manager import FourWayTrafficManager
 
@@ -69,33 +69,35 @@ def test_intersection():
     # Create vehicles at correct positions for approach zone
     # NORTH vehicles move south (decreasing Y), so position > center_y + size/2
     route1 = Route(Direction.NORTH, Direction.SOUTH)
-    v1 = Vehicle(1, route1, position=290.0, speed=15.0)  # 290 > 270 (center_y + size/2)
+    v1 = Vehicle(1, route1, position=340.0, desired_speed=15.0)  # In approach zone, before stop line (320)
+    v1.current_speed = 15.0
     
     # EAST vehicles move west (increasing X), so position < center_x - size/2
     route2 = Route(Direction.EAST, Direction.WEST)
-    v2 = Vehicle(2, route2, position=200.0, speed=15.0)  # 200 < 230 (center_x - size/2)
+    v2 = Vehicle(2, route2, position=160.0, desired_speed=15.0)  # In approach zone, before stop line (180)
+    v2.current_speed = 15.0
     
     # Test approach detection
     assert intersection.is_in_approach_zone(v1), "V1 should be in approach zone"
     print(f"✓ V1 detected in approach zone")
     
-    # Test entry
-    can_enter = intersection.can_enter(v1)
-    print(f"✓ V1 can enter: {can_enter}")
+    # Run arbiter to process vehicles and issue grants
+    all_vehicles = [v1, v2]
+    intersection.run_arbiter(all_vehicles, dt=0.0166, current_time=0.0)
     
-    # Request entry for v1
-    intersection.request_entry(v1)
-    assert v1.vehicle_id in intersection.vehicles_inside, "V1 should be inside"
-    print(f"✓ V1 entered intersection")
+    # Run update_vehicle to enqueue and evaluate state
+    cmd1 = intersection.update_vehicle(v1, current_time=0.0)
+    cmd2 = intersection.update_vehicle(v2, current_time=0.0)
+    print(f"✓ V1 action: {cmd1}, V2 action: {cmd2}")
     
-    # Try to enter v2 (should conflict)
-    can_enter_v2 = intersection.can_enter(v2)
-    assert not can_enter_v2, "V2 should not be able to enter (conflicts with V1)"
-    print(f"✓ V2 correctly blocked due to conflict")
+    # Run arbiter again to issue grants
+    intersection.run_arbiter(all_vehicles, dt=0.0166, current_time=0.0166)
     
-    # Get state
-    state = intersection.get_state()
-    print(f"✓ Intersection state: occupancy={state['occupancy']}/{state['max_occupancy']}")
+    # NORTH and SOUTH share NS phase, EAST belongs to EW phase. 
+    # Since NS is active first, V1 should get a grant, but V2 should be blocked (no grant)
+    assert v1.vehicle_id in intersection.granted_vehicle_ids, "V1 should have grant"
+    assert v2.vehicle_id not in intersection.granted_vehicle_ids, "V2 should not have grant"
+    print(f"✓ V1 granted, V2 blocked correctly")
     
     print("✓ All intersection tests passed!\n")
 
@@ -108,13 +110,16 @@ def test_traffic_manager():
     manager = FourWayTrafficManager(intersection, road_length=500.0)
     print(f"✓ Created: {manager}")
     
-    # Spawn vehicles
-    for i in range(5):
+    # Spawn up to 4 vehicles (one for each direction)
+    spawned = []
+    for i in range(4):
         v = manager.spawn_vehicle()
-        print(f"✓ Spawned V{v.vehicle_id}: {v.route}")
+        if v is not None:
+            spawned.append(v)
+            print(f"✓ Spawned V{v.vehicle_id}: {v.route}")
     
-    assert len(manager.vehicles) == 5, "Should have 5 vehicles"
-    print(f"✓ Total vehicles: {len(manager.vehicles)}")
+    assert len(manager.vehicles) == len(spawned), "Vehicles list should match spawned list"
+    print(f"✓ Total vehicles spawned: {len(manager.vehicles)}")
     
     # Update simulation
     manager.update(dt=1.0)

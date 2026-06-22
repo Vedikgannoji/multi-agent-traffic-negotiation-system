@@ -101,6 +101,13 @@ class VehicleAgent:
         self.vehicles_ahead_count = 0
         self.vehicles_behind_count = 0
 
+        # V2V Intent Sharing properties
+        self.has_grant = False
+        self.nearby_approaching_agents = 0
+        self.nearby_waiting_agents = 0
+        self.nearby_crossing_agents = 0
+        self.nearby_yielding_agents = 0
+
     @property
     def speed(self) -> float:
         return self.current_speed
@@ -136,11 +143,29 @@ class VehicleAgent:
             self.waiting_time = 0.0
         else:
             # self.state == VehicleState.MOVING
-            self.waiting_time = 0.0
             if distance_to_center < self.NEGOTIATION_ZONE_DISTANCE:
-                self.agent_state = AgentState.NEGOTIATING
+                # Near intersection - use hysteresis to prevent oscillation
+                if self.agent_state == AgentState.WAITING:
+                    # Already waiting - need higher speed to exit waiting state
+                    if self.current_speed > self.SPEED_THRESHOLD_MOVING:
+                        self.agent_state = AgentState.NEGOTIATING
+                        self.waiting_time = 0.0
+                    else:
+                        # Stay waiting, accumulate time
+                        self.waiting_time += dt
+                else:
+                    # Not waiting - check if should enter waiting
+                    if self.current_speed < self.SPEED_THRESHOLD_WAITING:
+                        self.agent_state = AgentState.WAITING
+                        self.waiting_time += dt
+                    else:
+                        # Moving normally in negotiation zone
+                        self.agent_state = AgentState.NEGOTIATING
+                        self.waiting_time = 0.0
             else:
+                # Far from intersection -> APPROACHING
                 self.agent_state = AgentState.APPROACHING
+                self.waiting_time = 0.0
 
     def set_agent_state(self, state: AgentState):
         """Manually set agent state (used for special cases like collision/exit)."""
@@ -213,12 +238,27 @@ class VehicleAgent:
         from simulation.communication import VehicleMessage, MessageType
         
         if force or (current_time - self._last_broadcast_time >= interval):
+            intent = "unknown"
+            if self.agent_state == AgentState.APPROACHING:
+                intent = "approaching"
+            elif self.agent_state == AgentState.WAITING:
+                intent = "waiting"
+            elif self.agent_state == AgentState.CROSSING:
+                intent = "crossing"
+            elif self.agent_state == AgentState.NEGOTIATING:
+                intent = "yielding"
+
+            corridor = "NS" if self.route.source in ("north", "south") else "EW"
+
             payload = {
                 "position": self.position,
                 "speed": self.current_speed,
                 "direction": self.route.source,
                 "destination": self.route.destination,
-                "current_state": self.agent_state.value
+                "current_state": self.agent_state.value,
+                "intent": intent,
+                "corridor": corridor,
+                "has_grant": self.has_grant
             }
             msg = VehicleMessage(
                 sender_id=self.agent_id,
@@ -265,6 +305,10 @@ class VehicleAgent:
             self.local_density = 0.0
             self.vehicles_ahead_count = 0
             self.vehicles_behind_count = 0
+            self.nearby_approaching_agents = 0
+            self.nearby_waiting_agents = 0
+            self.nearby_crossing_agents = 0
+            self.nearby_yielding_agents = 0
             return
 
         my_x, my_y = self.get_2d_position(center_x, center_y, lane_offset)
@@ -275,6 +319,11 @@ class VehicleAgent:
         ahead_count = 0
         behind_count = 0
         
+        approaching_agents = 0
+        waiting_agents = 0
+        crossing_agents = 0
+        yielding_agents = 0
+
         my_dir = self.route.source
         is_ns = my_dir in ("north", "south")
         
@@ -282,9 +331,19 @@ class VehicleAgent:
             other_dir = info.get("direction")
             other_pos = info.get("position")
             other_speed = info.get("speed", 0.0)
+            other_intent = info.get("intent", "unknown")
             
             total_speed += other_speed
             
+            if other_intent == "approaching":
+                approaching_agents += 1
+            elif other_intent == "waiting":
+                waiting_agents += 1
+            elif other_intent == "crossing":
+                crossing_agents += 1
+            elif other_intent == "yielding":
+                yielding_agents += 1
+
             # 2D coordinates for distance
             other_x, other_y = self.calculate_2d_position(other_dir, other_pos, center_x, center_y, lane_offset)
             dist = math.sqrt((my_x - other_x) ** 2 + (my_y - other_y) ** 2)
@@ -324,6 +383,11 @@ class VehicleAgent:
         self.local_density = self.neighbor_count / 150.0
         self.vehicles_ahead_count = ahead_count
         self.vehicles_behind_count = behind_count
+        
+        self.nearby_approaching_agents = approaching_agents
+        self.nearby_waiting_agents = waiting_agents
+        self.nearby_crossing_agents = crossing_agents
+        self.nearby_yielding_agents = yielding_agents
 
     def get_closest_vehicle(self) -> str:
         """Return the vehicle ID of the closest vehicle in communication range."""
@@ -339,6 +403,15 @@ class VehicleAgent:
             "local_density": self.local_density,
             "vehicles_ahead_count": self.vehicles_ahead_count,
             "vehicles_behind_count": self.vehicles_behind_count
+        }
+
+    def get_intent_summary(self) -> dict:
+        """Return summary of neighbor intents."""
+        return {
+            "approaching_agents": self.nearby_approaching_agents,
+            "waiting_agents": self.nearby_waiting_agents,
+            "crossing_agents": self.nearby_crossing_agents,
+            "yielding_agents": self.nearby_yielding_agents
         }
 
     def __repr__(self):

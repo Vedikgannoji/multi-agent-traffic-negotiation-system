@@ -160,6 +160,7 @@ class FourWayTrafficManager:
         # 1. Broadcasters: Each vehicle broadcasts its STATUS if interval is reached
         for vehicle in self.vehicles:
             if vehicle.state != VehicleState.COLLIDED:
+                vehicle.has_grant = vehicle.vehicle_id in self.intersection.granted_vehicle_ids
                 vehicle.broadcast_status(self.message_bus, current_time, interval=0.1)
 
         # 2. Receivers: Each vehicle receives messages and updates known_agents
@@ -594,6 +595,10 @@ class FourWayTrafficManager:
                 "local_density": round(v.local_density, 4),
                 "vehicles_ahead_count": v.vehicles_ahead_count,
                 "vehicles_behind_count": v.vehicles_behind_count,
+                "nearby_approaching_agents": v.nearby_approaching_agents,
+                "nearby_waiting_agents": v.nearby_waiting_agents,
+                "nearby_crossing_agents": v.nearby_crossing_agents,
+                "nearby_yielding_agents": v.nearby_yielding_agents,
             }
             for v in self.vehicles
         ]
@@ -645,12 +650,32 @@ class FourWayTrafficManager:
             if valid_dists:
                 avg_closest_dist = sum(valid_dists) / len(valid_dists)
                 
+        # Neighbor-observation aggregates (summed observations across all active vehicles)
+        obs_approaching = sum(v.nearby_approaching_agents for v in active_vehicles)
+        obs_waiting = sum(v.nearby_waiting_agents for v in active_vehicles)
+        obs_crossing = sum(v.nearby_crossing_agents for v in active_vehicles)
+        obs_yielding = sum(v.nearby_yielding_agents for v in active_vehicles)
+
+        # Actual vehicle counts by intent
+        actual_approaching = sum(1 for v in active_vehicles if v.agent_state == AgentState.APPROACHING)
+        actual_waiting = sum(1 for v in active_vehicles if v.agent_state == AgentState.WAITING)
+        actual_crossing = sum(1 for v in active_vehicles if v.agent_state == AgentState.CROSSING)
+        actual_yielding = sum(1 for v in active_vehicles if v.agent_state == AgentState.NEGOTIATING)
+
         return {
             "total_messages_sent": total_sent,
             "total_messages_received": total_received,
             "average_neighbors_per_vehicle": round(avg_neighbors, 2),
             "average_local_density": round(avg_density, 4),
-            "average_closest_vehicle_distance": round(avg_closest_dist, 2)
+            "average_closest_vehicle_distance": round(avg_closest_dist, 2),
+            "total_approaching_agents": actual_approaching,
+            "total_waiting_agents": actual_waiting,
+            "total_crossing_agents": actual_crossing,
+            "total_yielding_agents": actual_yielding,
+            "obs_approaching_agents": obs_approaching,
+            "obs_waiting_agents": obs_waiting,
+            "obs_crossing_agents": obs_crossing,
+            "obs_yielding_agents": obs_yielding
         }
 
     def get_agent_state_counts(self) -> dict:

@@ -32,7 +32,7 @@ html, body, #root {
   padding: 0 1rem 1rem;
   background: rgba(12, 12, 20, 0.9);
   border-left: 1px solid rgba(255, 255, 255, 0.07);
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
@@ -49,4 +49,19 @@ html, body, #root {
     max-height: 42vh;
     overflow-y: auto;
   }
+}
+
+/* Custom scrollbar for control panel */
+.app-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.app-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.app-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+.app-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }

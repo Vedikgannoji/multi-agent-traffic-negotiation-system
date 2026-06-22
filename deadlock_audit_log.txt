@@ -1,0 +1,33 @@
+[0] ================================================================================
+[1] DEADLOCK AUDIT TEST - Reservation Lifecycle Analysis
+[2] ================================================================================
+[3] Spawning initial vehicles...
+[4]   Spawned vehicle 1: west->north
+[5]   Spawned vehicle 2: south->west
+[6]   Spawned vehicle 3: north->west
+[7]   Spawned vehicle 4: east->north
+[8] Initial spawn complete: 4 vehicles
+[9] 
+[10] ERROR: 'FourWayIntersection' object has no attribute 'audit_log'
+[11] Traceback (most recent call last):
+  File "C:\Users\vedik\OneDrive\Desktop\Multi Agent Traffic Negotiation Simulator using Reinforcement Learning and V2V Communication\main\multi-agent-traffic-system\test_deadlock_audit.py", line 171, in run_audit
+    for audit_msg in intersection.audit_log:
+                     ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'FourWayIntersection' object has no attribute 'audit_log'
+
+[12] 
+[13] ================================================================================
+[14] FINAL STATE
+[15] ================================================================================
+[16] Total ticks: 0
+[17] Total vehicles spawned: 4
+[18] Total vehicles removed: 0
+[19] Vehicles alive: 4
+[20] Total crossings: 0
+[21] Safe crossings: 0
+[22] Total reservations issued: 0
+[23] Conflicts prevented: 0
+[24] Deadlock recoveries: 0
+[25] 
+[26] No deadlock detected within simulation window
+[27] 

@@ -167,6 +167,22 @@ export default function ControlPanel({ simulationState, isConnected, onControlAc
           <Metric label="Avg Local Density" value={v2v?.average_local_density !== undefined ? v2v.average_local_density.toFixed(4) : "0.0000"} accent="#f97316" />
           <Metric label="Avg Closest Distance" value={v2v?.average_closest_vehicle_distance !== undefined && v2v.average_closest_vehicle_distance > 0 ? `${v2v.average_closest_vehicle_distance.toFixed(1)} m` : "N/A"} accent="#44ff88" />
         </div>
+        
+        <p className="cp-label" style={{ marginTop: '0.75rem', marginBottom: '0.4rem' }}>Intent Awareness</p>
+        <div className="cp-metrics">
+          <Metric label="Approaching Agents" value={v2v?.total_approaching_agents ?? 0} accent="#4a9eff" />
+          <Metric label="Waiting Agents" value={v2v?.total_waiting_agents ?? 0} accent="#f97316" />
+          <Metric label="Crossing Agents" value={v2v?.total_crossing_agents ?? 0} accent="#44ff88" />
+          <Metric label="Yielding Agents" value={v2v?.total_yielding_agents ?? 0} accent="#fbbf24" />
+        </div>
+
+        <p className="cp-label" style={{ marginTop: '0.75rem', marginBottom: '0.4rem' }}>Neighbor Intent Observations</p>
+        <div className="cp-metrics">
+          <Metric label="Approaching Obs" value={v2v?.obs_approaching_agents ?? 0} accent="#4a9eff" />
+          <Metric label="Waiting Obs" value={v2v?.obs_waiting_agents ?? 0} accent="#f97316" />
+          <Metric label="Crossing Obs" value={v2v?.obs_crossing_agents ?? 0} accent="#44ff88" />
+          <Metric label="Yielding Obs" value={v2v?.obs_yielding_agents ?? 0} accent="#fbbf24" />
+        </div>
       </section>
 
       {/* ── Section 5: Safety Metrics ── */}
