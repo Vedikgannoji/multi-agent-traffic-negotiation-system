@@ -1,67 +1,508 @@
-/* ── Root layout ─────────────────────────────────────────────────────────── */
+/* ── Tesla/Figma Light Theme App Styles ────────────────────────────────── */
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 html, body, #root {
   height: 100%;
-  overflow: hidden; /* no page scroll */
-  background: #0d0d14;
+  overflow: hidden;
+  background-color: #f8fafc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #334155;
 }
 
-.app {
+/* Root Layout Container */
+.app-container {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: linear-gradient(135deg, #0a0a0a 0%, #111120 100%);
+  background-color: #f8fafc;
 }
 
-/* Left — simulation canvas */
-.app-sim {
+/* ── Top Header ── */
+.app-header {
+  height: 56px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.5rem;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  z-index: 10;
+}
+
+.app-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.app-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+}
+
+.app-subtitle {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.app-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.app-mode-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.app-mode-badge--v2v {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+.app-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.status-dot.connected {
+  background-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.status-dot.disconnected {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* ── Main Workspace ── */
+.app-main {
   flex: 1;
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  gap: 0.75rem;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Center Workspace Row */
+.app-center {
+  height: 480px;
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.canvas-card {
+  flex: 1;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-/* Right — control panel */
-.app-panel {
-  width: 240px;
+.controls-card {
+  width: 320px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   flex-shrink: 0;
-  padding: 0 1rem 1rem;
-  background: rgba(12, 12, 20, 0.9);
-  border-left: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Bottom Workspace Row (Analytics Tabs) */
+.app-bottom {
+  flex: 1;
+  min-height: 0; /* Important for scroll container containment */
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Tabbed Navigation ── */
+.tabs-header {
+  height: 42px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: stretch;
+  background-color: #fafbfc;
+  padding: 0 1rem;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  padding: 0 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tab-btn:hover {
+  color: #334155;
+  background-color: #f1f5f9;
+}
+
+.tab-btn--active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background-color: #ffffff;
+}
+
+/* ── Workspace Tab View ── */
+.tab-content {
+  flex: 1;
+  padding: 0.85rem;
+  overflow-y: auto;
+  min-height: 0;
+  background-color: #ffffff;
+}
+
+.tab-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0.75rem;
+}
+
+/* ── Metric Grid layouts ── */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.metric-card {
+  padding: 0.65rem 0.85rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: all 0.15s ease;
+}
+
+.metric-card:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.metric-card-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.metric-card-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.metric-card-unit {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+/* ── Chart Container Panels ── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 160px;
+}
+
+.chart-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  min-height: 0;
+}
+
+.chart-card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Progress layout */
+.negotiation-ring-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex: 1;
+}
+
+/* ── V2V Live Feed Split Layout ── */
+.live-feed-split {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.console-panel {
+  flex: 1.3;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.5rem;
+  background-color: #0f172a;
+  min-height: 0;
+}
+
+.active-neg-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background-color: #f8fafc;
+  min-height: 0;
+}
+
+.panel-header-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.console-header-title {
+  color: #94a3b8;
+}
+
+/* Internally scrollable console list */
+.console-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+  font-family: 'Fira Code', 'JetBrains Mono', Courier, monospace;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  line-height: 1.3;
+  background-color: #0f172a;
+  border-radius: 6px;
+}
+
+.console-row {
+  display: flex;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.console-time {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+/* Color coding for logs */
+.console-text {
+  color: #e2e8f0;
+  word-break: break-all;
+}
+
+.console-text.intent {
+  color: #38bdf8; /* cyan */
+}
+
+.console-text.priority {
+  color: #fbbf24; /* yellow */
+}
+
+.console-text.yield {
+  color: #c084fc; /* purple */
+}
+
+.console-text.proceed {
+  color: #34d399; /* emerald */
+}
+
+/* Active negotiations list container */
+.active-neg-box {
+  flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 2px;
 }
 
-/* ── Responsive: stack on narrow screens ─────────────────────────────────── */
-@media (max-width: 900px) {
-  .app { flex-direction: column; }
-
-  .app-panel {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-    padding: 0.75rem 1rem;
-    max-height: 42vh;
-    overflow-y: auto;
-  }
+.active-neg-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-style: italic;
 }
 
-/* Custom scrollbar for control panel */
-.app-panel::-webkit-scrollbar {
-  width: 6px;
+.neg-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  transition: all 0.15s ease;
 }
-.app-panel::-webkit-scrollbar-track {
+
+.neg-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+
+.neg-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.25rem;
+}
+
+.neg-ids {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #0f172a;
+}
+
+.neg-vehicle-tag {
+  background-color: #eff6ff;
+  color: #2563eb;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-family: monospace;
+}
+
+.neg-age {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.neg-card-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+.neg-label {
+  color: #64748b;
+}
+
+.neg-val {
+  font-weight: 600;
+  color: #334155;
+  font-family: monospace;
+}
+
+.neg-val.winner {
+  color: #10b981;
+}
+
+.neg-val.yielder {
+  color: #8b5cf6;
+}
+
+/* Custom scrollbars for chrome */
+.console-box::-webkit-scrollbar,
+.active-neg-box::-webkit-scrollbar,
+.tab-content::-webkit-scrollbar {
+  width: 5px;
+}
+.console-box::-webkit-scrollbar-track,
+.active-neg-box::-webkit-scrollbar-track,
+.tab-content::-webkit-scrollbar-track {
   background: transparent;
 }
-.app-panel::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+.console-box::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 3px;
 }
-.app-panel::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+.active-neg-box::-webkit-scrollbar-thumb,
+.tab-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+.console-box::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.active-neg-box::-webkit-scrollbar-thumb:hover,
+.tab-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }

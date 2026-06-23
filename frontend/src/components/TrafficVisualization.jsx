@@ -237,6 +237,8 @@ function VehicleSVG({ vehicle, centerX, centerY, roadLength }) {
     color = '#3b82f6'; // blue
   } else if (displayState === 'negotiating') {
     color = '#fbbf24'; // yellow
+  } else if (displayState === 'yielding') {
+    color = '#e879f9'; // pink/magenta
   } else if (displayState === 'waiting') {
     color = '#f97316'; // orange
   } else if (displayState === 'crossing') {
@@ -258,6 +260,18 @@ function VehicleSVG({ vehicle, centerX, centerY, roadLength }) {
       >
         {turn_type === 'left' ? '←' : turn_type === 'right' ? '→' : '↑'}
       </text>
+
+      {/* State label: NEGOT or YIELD */}
+      {(displayState === 'negotiating' || displayState === 'yielding') && (
+        <g transform={`rotate(${-rotation}) translate(0, -18)`}>
+          <rect x="-18" y="-6" width="36" height="11" rx="2" 
+                fill={displayState === 'yielding' ? '#e879f9' : '#fbbf24'} 
+                stroke="#000" strokeWidth="0.5" />
+          <text x="0" y="2" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#000">
+            {displayState === 'yielding' ? 'YIELD' : 'NEGOT'}
+          </text>
+        </g>
+      )}
     </g>
   );
 }
@@ -288,6 +302,9 @@ function VehicleList({ vehicles }) {
         </div>
         <div className="state-badge state-negotiating">
           Negotiating: {byState.negotiating || 0}
+        </div>
+        <div className="state-badge" style={{ borderColor: '#e879f9', color: '#e879f9' }}>
+          Yielding: {byState.yielding || 0}
         </div>
         <div className="state-badge state-waiting">
           Waiting: {byState.waiting || 0}

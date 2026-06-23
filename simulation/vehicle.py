@@ -17,10 +17,11 @@ except ImportError:
 class AgentState(Enum):
     """
     State machine for autonomous vehicle agents.
-    Phase 1: Basic state transitions without negotiation.
+    Phase 2 Stage 4: Includes YIELDING for cooperative negotiation.
     """
     APPROACHING = "approaching"  # Moving toward intersection
-    NEGOTIATING = "negotiating"  # At intersection zone (placeholder for Phase 2)
+    NEGOTIATING = "negotiating"  # At intersection zone, evaluating conflicts
+    YIELDING    = "yielding"     # Yielding to higher-priority vehicle
     WAITING     = "waiting"      # Blocked, waiting to proceed
     CROSSING    = "crossing"     # Inside intersection
     EXITED      = "exited"       # Left the simulation
@@ -107,6 +108,19 @@ class VehicleAgent:
         self.nearby_waiting_agents = 0
         self.nearby_crossing_agents = 0
         self.nearby_yielding_agents = 0
+        self.nearby_negotiating_agents = 0
+
+        # Negotiation Layer properties (Phase 2 Stage 4)
+        self.negotiation_priority = 0.0
+        self.negotiation_outcome = None  # "PROCEED", "YIELD", or None
+        self.negotiation_partner_id = None
+        self.yielding_visual_timer = 0.0
+        self.yielding_duration = 0.0
+
+        # V2V Yield Lock — set by NegotiationEngine, enforced by traffic manager
+        # When True, this vehicle MUST remain stopped until the lock is released.
+        self.v2v_yield_locked = False
+        self.v2v_yield_partner_id = None  # ID of the vehicle we are yielding to
 
     @property
     def speed(self) -> float:
@@ -126,6 +140,35 @@ class VehicleAgent:
         
         if self.agent_state == AgentState.EXITED:
             return
+
+        # ── V2V Yield Lock: absolute override ─────────────────────────────────
+        # When the negotiation engine has locked this vehicle into yielding,
+        # the state machine MUST NOT override it. The vehicle stays YIELDING
+        # until the lock is released (winner clears the intersection).
+        if self.v2v_yield_locked:
+            self.agent_state = AgentState.YIELDING
+            self.state = VehicleState.WAITING
+            self.waiting_time += dt
+            self.yielding_duration += dt
+            return
+
+        # Decrement visual timer
+        if hasattr(self, 'yielding_visual_timer') and self.yielding_visual_timer > 0.0:
+            self.yielding_visual_timer = max(0.0, self.yielding_visual_timer - dt)
+
+        # If visual timer is active, hold YIELDING state (unless crossing/collided)
+        if hasattr(self, 'yielding_visual_timer') and self.yielding_visual_timer > 0.0:
+            if not is_inside_intersection and self.state != VehicleState.CROSSING:
+                self.agent_state = AgentState.YIELDING
+                if self.current_speed < self.SPEED_THRESHOLD_WAITING:
+                    self.state = VehicleState.WAITING
+                    self.waiting_time += dt
+                else:
+                    self.state = VehicleState.MOVING
+                    self.waiting_time = 0.0
+                if self.agent_state == AgentState.YIELDING:
+                    self.yielding_duration += dt
+                return
             
         if self.route.source in ('north', 'south'):
             distance_to_center = abs(self.position - intersection_center_y)
@@ -166,6 +209,9 @@ class VehicleAgent:
                 # Far from intersection -> APPROACHING
                 self.agent_state = AgentState.APPROACHING
                 self.waiting_time = 0.0
+
+        if self.agent_state == AgentState.YIELDING:
+            self.yielding_duration += dt
 
     def set_agent_state(self, state: AgentState):
         """Manually set agent state (used for special cases like collision/exit)."""
@@ -246,6 +292,8 @@ class VehicleAgent:
             elif self.agent_state == AgentState.CROSSING:
                 intent = "crossing"
             elif self.agent_state == AgentState.NEGOTIATING:
+                intent = "negotiating"
+            elif self.agent_state == AgentState.YIELDING:
                 intent = "yielding"
 
             corridor = "NS" if self.route.source in ("north", "south") else "EW"
@@ -258,7 +306,9 @@ class VehicleAgent:
                 "current_state": self.agent_state.value,
                 "intent": intent,
                 "corridor": corridor,
-                "has_grant": self.has_grant
+                "has_grant": self.has_grant,
+                "negotiation_priority": self.negotiation_priority,
+                "negotiation_outcome": self.negotiation_outcome
             }
             msg = VehicleMessage(
                 sender_id=self.agent_id,
@@ -309,6 +359,7 @@ class VehicleAgent:
             self.nearby_waiting_agents = 0
             self.nearby_crossing_agents = 0
             self.nearby_yielding_agents = 0
+            self.nearby_negotiating_agents = 0
             return
 
         my_x, my_y = self.get_2d_position(center_x, center_y, lane_offset)
@@ -323,6 +374,7 @@ class VehicleAgent:
         waiting_agents = 0
         crossing_agents = 0
         yielding_agents = 0
+        negotiating_agents = 0
 
         my_dir = self.route.source
         is_ns = my_dir in ("north", "south")
@@ -343,6 +395,8 @@ class VehicleAgent:
                 crossing_agents += 1
             elif other_intent == "yielding":
                 yielding_agents += 1
+            elif other_intent == "negotiating":
+                negotiating_agents += 1
 
             # 2D coordinates for distance
             other_x, other_y = self.calculate_2d_position(other_dir, other_pos, center_x, center_y, lane_offset)
@@ -388,6 +442,7 @@ class VehicleAgent:
         self.nearby_waiting_agents = waiting_agents
         self.nearby_crossing_agents = crossing_agents
         self.nearby_yielding_agents = yielding_agents
+        self.nearby_negotiating_agents = negotiating_agents
 
     def get_closest_vehicle(self) -> str:
         """Return the vehicle ID of the closest vehicle in communication range."""
@@ -411,7 +466,8 @@ class VehicleAgent:
             "approaching_agents": self.nearby_approaching_agents,
             "waiting_agents": self.nearby_waiting_agents,
             "crossing_agents": self.nearby_crossing_agents,
-            "yielding_agents": self.nearby_yielding_agents
+            "yielding_agents": self.nearby_yielding_agents,
+            "negotiating_agents": self.nearby_negotiating_agents
         }
 
     def __repr__(self):

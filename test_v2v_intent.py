@@ -36,10 +36,10 @@ def test_intent_broadcast_payload():
     assert payload["corridor"] == "NS"
     assert payload["has_grant"] is True
     
-    # Test yielding mapping
+    # Test negotiating mapping (was previously 'yielding', now correctly 'negotiating')
     v.agent_state = AgentState.NEGOTIATING
     v.broadcast_status(bus, current_time=0.2, force=True)
-    assert v.message_outbox[1].payload["intent"] == "yielding"
+    assert v.message_outbox[1].payload["intent"] == "negotiating"
 
 
 def test_intent_awareness_counting():
@@ -111,11 +111,11 @@ def test_traffic_manager_intent_aggregation():
     v4.position = 295.0
     v4._last_broadcast_time = -1.0
     
-    # Set specific intents
+    # Set specific intents - use YIELDING (Stage 4) for v4
     v1.agent_state = AgentState.APPROACHING
     v2.agent_state = AgentState.WAITING
     v3.agent_state = AgentState.CROSSING
-    v4.agent_state = AgentState.NEGOTIATING
+    v4.agent_state = AgentState.YIELDING
     
     # Tick simulation
     manager.update(dt=0.1)
@@ -124,7 +124,7 @@ def test_traffic_manager_intent_aggregation():
     v1.agent_state = AgentState.APPROACHING
     v2.agent_state = AgentState.WAITING
     v3.agent_state = AgentState.CROSSING
-    v4.agent_state = AgentState.NEGOTIATING
+    v4.agent_state = AgentState.YIELDING
     
     print("AGENT STATES:", v1.agent_state, v2.agent_state, v3.agent_state, v4.agent_state)
     print("V2V STATS:", manager.get_v2v_stats())

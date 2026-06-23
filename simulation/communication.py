@@ -13,6 +13,7 @@ class MessageType(Enum):
     INTENT = "INTENT"
     PRIORITY = "PRIORITY"
     YIELD = "YIELD"
+    PROCEED = "PROCEED"
     GRANT = "GRANT"
 
 

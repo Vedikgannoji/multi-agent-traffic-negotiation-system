@@ -65,6 +65,11 @@ class SimulationSpeedRequest(BaseModel):
     speed: float  # 1.0 = normal, 2.0 = 2x, 4.0 = 4x
 
 
+class ControlModeRequest(BaseModel):
+    """Request model for updating simulation control mode."""
+    mode: str  # "assisted" or "pure_v2v"
+
+
 # --- Simulation thread ---
 def simulation_loop():
     """
@@ -174,6 +179,20 @@ def get_simulation_state():
         safety_stats = manager.get_safety_stats()
         agent_state_counts = manager.get_agent_state_counts()
         v2v_stats = manager.get_v2v_stats()
+        
+        # Format active negotiations list
+        active_neg_list = []
+        for key, data in manager.negotiation_engine.active_negotiations.items():
+            active_neg_list.append({
+                "vehicle_a": data["vehicle_a"],
+                "vehicle_b": data["vehicle_b"],
+                "priority_a": round(data["priority_a"], 2),
+                "priority_b": round(data["priority_b"], 2),
+                "winner": data.get("winner"),
+                "yielding": data.get("yielding"),
+                "age": round(manager._sim_time - data["start_time"], 2)
+            })
+            
         control_status = {
             "running":               simulation_running,
             "paused":                simulation_paused,
@@ -182,6 +201,7 @@ def get_simulation_state():
             "max_vehicle_count":     MAX_VEHICLE_COUNT,
             "current_vehicle_count": len(manager.vehicles),
             "total_spawned":         manager.total_spawned,
+            "control_mode":          manager.control_mode,
         }
     
     return {
@@ -191,6 +211,8 @@ def get_simulation_state():
         "agent_states": agent_state_counts,
         "control": control_status,
         "v2v": v2v_stats,
+        "active_negotiations": active_neg_list,
+        "v2v_log": manager.negotiation_engine.message_console_log,
         "timestamp": time.time()
     }
 
@@ -398,6 +420,24 @@ def resume_simulation():
     }
 
 
+@app.post("/control/mode")
+def update_control_mode(request: ControlModeRequest):
+    """Update simulation control mode."""
+    if request.mode not in ("assisted", "pure_v2v"):
+        raise HTTPException(status_code=400, detail="Invalid control mode")
+    with simulation_lock:
+        manager.control_mode = request.mode
+        # Clear any active grants/reservations to prevent glitches during handovers
+        intersection.granted_vehicle_ids.clear()
+        intersection.granted_vehicle_id = None
+        intersection.active_reservations.clear()
+        intersection.reservations.clear()
+        return {
+            "success": True,
+            "mode": request.mode
+        }
+
+
 @app.post("/control/reset")
 def reset_simulation():
     """Reset simulation: remove all vehicles and clear all state including collision metrics."""
@@ -415,6 +455,13 @@ def reset_simulation():
         # Reset V2V stats
         manager.total_messages_sent = 0
         manager.total_messages_received = 0
+        manager.messages_per_second = 0.0
+        manager.total_yield_duration = 0.0
+        manager.completed_yield_count = 0
+        manager.control_mode = "assisted"
+
+        # Reset negotiation engine
+        manager.negotiation_engine.reset()
 
         # Reset intersection state (phase-based arbiter)
         intersection.granted_vehicle_id        = None

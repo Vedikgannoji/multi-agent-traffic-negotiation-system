@@ -1,13 +1,26 @@
-/* ── Control Panel ───────────────────────────────────────────────────────── */
+/* ── Light-themed Control Panel Styles ─────────────────────────────────── */
 
 .cp {
   display: flex;
   flex-direction: column;
-  gap: 0;
   height: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #e0e0e0;
-  font-size: 0.8125rem;
+  padding: 1.25rem;
+  background-color: #ffffff;
+  color: #334155;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-y: auto;
+}
+
+.cp--offline {
+  justify-content: center;
+  align-items: center;
+}
+
+.cp-offline-message {
+  padding: 2rem 1rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  text-align: center;
 }
 
 /* Header */
@@ -15,57 +28,54 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.875rem 0 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 0.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 0.75rem;
   flex-shrink: 0;
 }
 
 .cp-title {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.2px;
+  color: #0f172a;
+  letter-spacing: -0.2px;
 }
 
 .cp-pill {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   padding: 0.25rem 0.6rem;
-  border-radius: 4px;
-  letter-spacing: 0.3px;
+  border-radius: 6px;
 }
 
 .cp-pill--running {
-  background: rgba(68, 255, 136, 0.15);
-  color: #44ff88;
-  border: 1px solid rgba(68, 255, 136, 0.3);
+  background-color: #d1fae5;
+  color: #065f46;
 }
 
 .cp-pill--paused {
-  background: rgba(255, 184, 74, 0.15);
-  color: #ffb84a;
-  border: 1px solid rgba(255, 184, 74, 0.3);
+  background-color: #fef3c7;
+  color: #92400e;
 }
 
 /* Sections */
 .cp-section {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0;
 }
 
 .cp-section--last {
   border-bottom: none;
-  flex: 1;
+  padding-bottom: 0;
 }
 
 .cp-label {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #555;
+  letter-spacing: 0.5px;
+  color: #64748b;
   margin: 0 0 0.5rem;
 }
 
@@ -77,114 +87,173 @@
 }
 
 .cp-count {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: #4a9eff;
+  color: #2563eb;
 }
 
-.cp-hint {
-  font-size: 0.7rem;
-  color: #444;
-  text-align: center;
-  margin: 0.4rem 0 0;
-}
-
-/* Button rows */
+/* Button layout rows & grids */
 .cp-row {
   display: flex;
-  gap: 0.4rem;
-  margin-bottom: 0.4rem;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
-.cp-row--3 {
+.cp-column-mode {
+  display: flex;
+  flex-direction: column;
   gap: 0.4rem;
 }
 
-/* Base button */
+.cp-grid-speed {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.35rem;
+}
+
+.cp-grid-spawn {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+/* Button styling */
 .cp-btn {
   flex: 1;
-  padding: 0.55rem 0.5rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #ccc;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
-  white-space: nowrap;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #334155;
+  transition: all 0.15s ease;
 }
 
-.cp-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.22);
-  transform: translateY(-1px);
+.cp-btn:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
 }
 
-.cp-btn:active:not(:disabled) { transform: translateY(0); }
-
-.cp-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.cp-btn:active {
+  background-color: #f1f5f9;
 }
 
-/* Half-width */
-.cp-btn--half { flex: 1; }
-
-/* Colour variants */
-.cp-btn--amber {
-  border-color: rgba(255, 184, 74, 0.3);
-  background: rgba(255, 184, 74, 0.08);
-  color: #ffb84a;
-}
-.cp-btn--amber:hover:not(:disabled) {
-  background: rgba(255, 184, 74, 0.16);
-  border-color: rgba(255, 184, 74, 0.5);
+.cp-btn--primary {
+  color: #ffffff;
+  border: none;
 }
 
-.cp-btn--green {
-  border-color: rgba(68, 255, 136, 0.3);
-  background: rgba(68, 255, 136, 0.08);
-  color: #44ff88;
-}
-.cp-btn--green:hover:not(:disabled) {
-  background: rgba(68, 255, 136, 0.16);
-  border-color: rgba(68, 255, 136, 0.5);
+.cp-btn--resume {
+  background-color: #2563eb;
 }
 
-.cp-btn--red {
-  border-color: rgba(255, 80, 80, 0.3);
-  background: rgba(255, 80, 80, 0.08);
-  color: #ff6060;
+.cp-btn--resume:hover {
+  background-color: #1d4ed8;
 }
-.cp-btn--red:hover:not(:disabled) {
-  background: rgba(255, 80, 80, 0.16);
-  border-color: rgba(255, 80, 80, 0.5);
+
+.cp-btn--resume:active {
+  background-color: #1e40af;
+}
+
+.cp-btn--pause {
+  background-color: #ea580c;
+}
+
+.cp-btn--pause:hover {
+  background-color: #ca8a04;
+}
+
+.cp-btn--pause:active {
+  background-color: #a16207;
+}
+
+.cp-btn--secondary {
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #475569;
+}
+
+.cp-btn--secondary:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
 }
 
 /* Speed buttons */
-.cp-btn--speed {
+.cp-btn-speed {
+  padding: 0.4rem 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.cp-btn-speed:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.cp-btn-speed--active {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.cp-btn-speed--active:hover {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+/* Mode switches */
+.cp-btn-mode {
+  padding: 0.5rem 0.75rem;
   font-size: 0.8rem;
-  padding: 0.5rem 0;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
 }
 
-.cp-btn--speed-active {
-  background: rgba(74, 158, 255, 0.18);
-  border-color: rgba(74, 158, 255, 0.5);
-  color: #4a9eff;
+.cp-btn-mode:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
 }
 
-/* Slider */
+.cp-btn-mode--active {
+  background-color: #f0f6ff;
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+/* Spawn buttons */
+.cp-btn--spawn {
+  padding: 0.5rem 0.4rem;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* Slider styling */
 .cp-slider {
   width: 100%;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
   display: block;
+  margin: 0.5rem 0;
 }
 
 .cp-slider::-webkit-slider-thumb {
@@ -192,52 +261,35 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #4a9eff;
-  border: 2px solid #fff;
-  box-shadow: 0 0 6px rgba(74, 158, 255, 0.5);
+  background: #2563eb;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.cp-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
 }
 
 .cp-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #4a9eff;
-  border: 2px solid #fff;
+  background: #2563eb;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.cp-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
 }
 
 .cp-slider-ends {
   display: flex;
   justify-content: space-between;
-  font-size: 0.68rem;
-  color: #444;
-  margin-top: 0.3rem;
-}
-
-/* Metrics */
-.cp-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.cp-metric {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.45rem 0.6rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 5px;
-}
-
-.cp-metric-label {
-  font-size: 0.775rem;
-  color: #666;
-}
-
-.cp-metric-value {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  color: #94a3b8;
 }
