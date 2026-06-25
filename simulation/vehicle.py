@@ -130,6 +130,53 @@ class VehicleAgent:
     def speed(self, value: float):
         self.current_speed = max(0.0, min(value, self.max_speed))
 
+    def is_past_intersection(self, center_x: float, center_y: float) -> bool:
+        """Check if vehicle is past the intersection center in its direction of travel."""
+        src = self.route.source
+        if src == "north":
+            # North travels downward (decreasing position)
+            return self.position < center_y
+        elif src == "south":
+            # South travels upward (increasing position)
+            return self.position > center_y
+        elif src == "east":
+            # East travels rightward (increasing position)
+            return self.position > center_x
+        elif src == "west":
+            # West travels leftward (decreasing position)
+            return self.position < center_x
+        return False
+
+    def _transition_to(self, new_state: AgentState):
+        """
+        Transition agent to a new state while auditing and enforcing FSM constraints.
+        """
+        # If transitioning to the same state, do nothing
+        if self.agent_state == new_state:
+            return
+
+        # COLLIDED is terminal; no transition out allowed
+        if self.agent_state == AgentState.COLLIDED:
+            return
+        
+        # EXITED is terminal; no transition out allowed
+        if self.agent_state == AgentState.EXITED:
+            return
+
+        # Disallow: CROSSING -> NEGOTIATING
+        if self.agent_state == AgentState.CROSSING and new_state == AgentState.NEGOTIATING:
+            print(f"[FSM-AUDIT] Denied illegal transition: CROSSING -> NEGOTIATING (Veh {self.vehicle_id})")
+            return
+
+        # Disallow: CROSSING -> YIELDING
+        if self.agent_state == AgentState.CROSSING and new_state == AgentState.YIELDING:
+            print(f"[FSM-AUDIT] Denied illegal transition: CROSSING -> YIELDING (Veh {self.vehicle_id})")
+            return
+
+
+        print(f"[FSM-AUDIT] Veh {self.vehicle_id}: {self.agent_state.value.upper()} -> {new_state.value.upper()}")
+        self.agent_state = new_state
+
     def update_agent_state(self, intersection_center_x: float, intersection_center_y: float,
                           intersection_size: float, is_inside_intersection: bool, dt: float):
         """
@@ -146,8 +193,7 @@ class VehicleAgent:
         # the state machine MUST NOT override it. The vehicle stays YIELDING
         # until the lock is released (winner clears the intersection).
         if self.v2v_yield_locked:
-            self.agent_state = AgentState.YIELDING
-            self.state = VehicleState.WAITING
+            self._transition_to(AgentState.YIELDING)
             self.waiting_time += dt
             self.yielding_duration += dt
             return
@@ -156,10 +202,10 @@ class VehicleAgent:
         if hasattr(self, 'yielding_visual_timer') and self.yielding_visual_timer > 0.0:
             self.yielding_visual_timer = max(0.0, self.yielding_visual_timer - dt)
 
-        # If visual timer is active, hold YIELDING state (unless crossing/collided)
+        # If visual timer is active, hold YIELDING state (unless crossing/collided/exited)
         if hasattr(self, 'yielding_visual_timer') and self.yielding_visual_timer > 0.0:
-            if not is_inside_intersection and self.state != VehicleState.CROSSING:
-                self.agent_state = AgentState.YIELDING
+            if not is_inside_intersection and self.state != VehicleState.CROSSING and not self.has_exited_intersection:
+                self._transition_to(AgentState.YIELDING)
                 if self.current_speed < self.SPEED_THRESHOLD_WAITING:
                     self.state = VehicleState.WAITING
                     self.waiting_time += dt
@@ -169,56 +215,60 @@ class VehicleAgent:
                 if self.agent_state == AgentState.YIELDING:
                     self.yielding_duration += dt
                 return
-            
+
+        # If the vehicle has fully clear/exited the intersection, it goes to EXITED
+        if self.has_exited_intersection or self.is_past_intersection(intersection_center_x, intersection_center_y):
+            self._transition_to(AgentState.EXITED)
+            self.yielding_visual_timer = 0.0
+            self.waiting_time = 0.0
+            return
+
+        if self.state == VehicleState.CROSSING or is_inside_intersection:
+            self._transition_to(AgentState.CROSSING)
+            self.waiting_time = 0.0
+            return
+
+        if self.state == VehicleState.WAITING:
+            self._transition_to(AgentState.WAITING)
+            self.waiting_time += dt
+            return
+
+        # Normal moving behavior before/approaching the intersection
         if self.route.source in ('north', 'south'):
             distance_to_center = abs(self.position - intersection_center_y)
         else:
             distance_to_center = abs(self.position - intersection_center_x)
 
-        # The arbitration engine explicitly sets self.state to WAITING, MOVING, or CROSSING.
-        # We must respect that arbitration decision for visualization and metrics.
-        if self.state == VehicleState.WAITING:
-            self.agent_state = AgentState.WAITING
-            self.waiting_time += dt
-        elif self.state == VehicleState.CROSSING or is_inside_intersection:
-            self.agent_state = AgentState.CROSSING
-            self.state = VehicleState.CROSSING
-            self.waiting_time = 0.0
-        else:
-            # self.state == VehicleState.MOVING
-            if distance_to_center < self.NEGOTIATION_ZONE_DISTANCE:
-                # Near intersection - use hysteresis to prevent oscillation
-                if self.agent_state == AgentState.WAITING:
-                    # Already waiting - need higher speed to exit waiting state
-                    if self.current_speed > self.SPEED_THRESHOLD_MOVING:
-                        self.agent_state = AgentState.NEGOTIATING
-                        self.waiting_time = 0.0
-                    else:
-                        # Stay waiting, accumulate time
-                        self.waiting_time += dt
+        if distance_to_center < self.NEGOTIATION_ZONE_DISTANCE:
+            # Near intersection - use hysteresis to prevent oscillation
+            if self.agent_state == AgentState.WAITING:
+                # Already waiting - need higher speed to exit waiting state
+                if self.current_speed > self.SPEED_THRESHOLD_MOVING:
+                    self._transition_to(AgentState.NEGOTIATING)
+                    self.waiting_time = 0.0
                 else:
-                    # Not waiting - check if should enter waiting
-                    if self.current_speed < self.SPEED_THRESHOLD_WAITING:
-                        self.agent_state = AgentState.WAITING
-                        self.waiting_time += dt
-                    else:
-                        # Moving normally in negotiation zone
-                        self.agent_state = AgentState.NEGOTIATING
-                        self.waiting_time = 0.0
+                    # Stay waiting, accumulate time
+                    self.waiting_time += dt
             else:
-                # Far from intersection -> APPROACHING
-                self.agent_state = AgentState.APPROACHING
-                self.waiting_time = 0.0
+                # Not waiting - check if should enter waiting
+                if self.current_speed < self.SPEED_THRESHOLD_WAITING:
+                    self._transition_to(AgentState.WAITING)
+                    self.waiting_time += dt
+                else:
+                    # Moving normally in negotiation zone
+                    self._transition_to(AgentState.NEGOTIATING)
+                    self.waiting_time = 0.0
+        else:
+            # Far from intersection -> APPROACHING
+            self._transition_to(AgentState.APPROACHING)
+            self.waiting_time = 0.0
 
         if self.agent_state == AgentState.YIELDING:
             self.yielding_duration += dt
 
     def set_agent_state(self, state: AgentState):
         """Manually set agent state (used for special cases like collision/exit)."""
-        if self.agent_state == AgentState.COLLIDED:
-            return  # Never override COLLIDED
-        self.agent_state = state
-        
+        self._transition_to(state)
         # Update legacy state for compatibility
         if state == AgentState.CROSSING:
             self.state = VehicleState.CROSSING

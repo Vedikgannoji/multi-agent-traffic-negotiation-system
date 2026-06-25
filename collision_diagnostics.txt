@@ -1,0 +1,546 @@
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 479.68s - REAL TIME: 2026-06-25 22:55:18
+================================================================================
+Vehicle A: ID=50, Dir=south->west
+  State=moving, Position=253.45m, Speed=12.14m/s
+  Priority=0.2302, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=51, Dir=west->north
+  State=crossing, Position=269.8m, Speed=14.17m/s
+  Priority=0.2304, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 746.92s - REAL TIME: 2026-06-25 22:55:28
+================================================================================
+Vehicle A: ID=78, Dir=north->west
+  State=crossing, Position=253.19m, Speed=10.32m/s
+  Priority=0.2305, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=80, Dir=east->west
+  State=crossing, Position=232.95m, Speed=16.49m/s
+  Priority=0.2304, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 770.31s - REAL TIME: 2026-06-25 22:55:28
+================================================================================
+Vehicle A: ID=82, Dir=north->west
+  State=moving, Position=245.42m, Speed=11.48m/s
+  Priority=0.2303, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=83, Dir=east->north
+  State=crossing, Position=230.06m, Speed=12.51m/s
+  Priority=0.23, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 932.58s - REAL TIME: 2026-06-25 22:55:30
+================================================================================
+Vehicle A: ID=101, Dir=south->east
+  State=crossing, Position=248.19m, Speed=12.49m/s
+  Priority=0.2306, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=102, Dir=west->north
+  State=crossing, Position=269.94m, Speed=16.48m/s
+  Priority=0.2309, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1384.11s - REAL TIME: 2026-06-25 22:55:35
+================================================================================
+Vehicle A: ID=154, Dir=east->south
+  State=moving, Position=255.76m, Speed=10.78m/s
+  Priority=0.2303, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=155, Dir=south->west
+  State=crossing, Position=230.18m, Speed=14.95m/s
+  Priority=0.2301, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1461.42s - REAL TIME: 2026-06-25 22:55:36
+================================================================================
+Vehicle A: ID=165, Dir=south->north
+  State=crossing, Position=249.52m, Speed=13.3m/s
+  Priority=0.2307, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=166, Dir=west->north
+  State=crossing, Position=269.73m, Speed=17.9m/s
+  Priority=0.2301, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1928.11s - REAL TIME: 2026-06-25 22:55:42
+================================================================================
+Vehicle A: ID=220, Dir=east->south
+  State=moving, Position=253.3m, Speed=10.61m/s
+  Priority=0.2302, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=221, Dir=south->east
+  State=crossing, Position=230.15m, Speed=16.31m/s
+  Priority=0.2302, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1949.38s - REAL TIME: 2026-06-25 22:55:42
+================================================================================
+Vehicle A: ID=224, Dir=south->west
+  State=moving, Position=266.74m, Speed=17.49m/s
+  Priority=0.2308, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=225, Dir=west->south
+  State=crossing, Position=269.98m, Speed=16.5m/s
+  Priority=0.2306, Yield Locked=False (partner=None)
+  Outcome=PROCEED, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {"223": {"winner_id": 225, "lock_time_sim": 1945.91}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2181.66s - REAL TIME: 2026-06-25 22:55:44
+================================================================================
+Vehicle A: ID=250, Dir=west->east
+  State=moving, Position=243.39m, Speed=12.06m/s
+  Priority=0.2303, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=252, Dir=north->west
+  State=crossing, Position=269.72m, Speed=16.98m/s
+  Priority=0.2304, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2301.06s - REAL TIME: 2026-06-25 22:55:46
+================================================================================
+Vehicle A: ID=264, Dir=west->east
+  State=crossing, Position=253.24m, Speed=10.47m/s
+  Priority=0.23, Yield Locked=False (partner=None)
+  Outcome=PROCEED, Has Grant=False
+Vehicle B: ID=266, Dir=north->east
+  State=crossing, Position=268.53m, Speed=15.61m/s
+  Priority=0.2306, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {"265": {"winner_id": 264, "lock_time_sim": 2293.79}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2562.12s - REAL TIME: 2026-06-25 22:55:51
+================================================================================
+Vehicle A: ID=296, Dir=north->south
+  State=crossing, Position=258.18m, Speed=10.4m/s
+  Priority=0.2301, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=297, Dir=west->north
+  State=crossing, Position=253.26m, Speed=17.55m/s
+  Priority=0.2301, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2683.86s - REAL TIME: 2026-06-25 22:55:53
+================================================================================
+Vehicle A: ID=311, Dir=east->west
+  State=moving, Position=265.89m, Speed=14.19m/s
+  Priority=0.2304, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=312, Dir=south->west
+  State=crossing, Position=230.19m, Speed=14.33m/s
+  Priority=0.23, Yield Locked=False (partner=None)
+  Outcome=PROCEED, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {"310": {"winner_id": 312, "lock_time_sim": 2679.69}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 91.32s - REAL TIME: 2026-06-25 22:55:55
+================================================================================
+Vehicle A: ID=9, Dir=east->west
+  State=moving, Position=256.55m, Speed=14.06m/s
+  Priority=0.2316, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=10, Dir=south->west
+  State=crossing, Position=230.06m, Speed=16.3m/s
+  Priority=0.2309, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 199.02s - REAL TIME: 2026-06-25 22:55:56
+================================================================================
+Vehicle A: ID=22, Dir=east->west
+  State=crossing, Position=236.61m, Speed=10.33m/s
+  Priority=0.2301, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=23, Dir=north->west
+  State=crossing, Position=252.81m, Speed=17.11m/s
+  Priority=0.2306, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 813.69s - REAL TIME: 2026-06-25 22:56:01
+================================================================================
+Vehicle A: ID=94, Dir=west->east
+  State=moving, Position=239.06m, Speed=17.07m/s
+  Priority=0.2316, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=95, Dir=north->west
+  State=crossing, Position=269.89m, Speed=17.45m/s
+  Priority=0.231, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1279.15s - REAL TIME: 2026-06-25 22:56:10
+================================================================================
+Vehicle A: ID=145, Dir=east->north
+  State=crossing, Position=246.82m, Speed=11.03m/s
+  Priority=0.2305, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=146, Dir=south->east
+  State=crossing, Position=231.39m, Speed=17.96m/s
+  Priority=0.2304, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2166.55s - REAL TIME: 2026-06-25 22:56:15
+================================================================================
+Vehicle A: ID=249, Dir=east->south
+  State=moving, Position=252.17m, Speed=11.38m/s
+  Priority=0.2305, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=250, Dir=south->north
+  State=crossing, Position=230.3m, Speed=15.89m/s
+  Priority=0.2306, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2294.37s - REAL TIME: 2026-06-25 22:56:16
+================================================================================
+Vehicle A: ID=264, Dir=west->east
+  State=crossing, Position=249.67m, Speed=13.19m/s
+  Priority=0.231, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=265, Dir=south->west
+  State=crossing, Position=246.73m, Speed=17.66m/s
+  Priority=0.2317, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {"267": {"winner_id": 266, "lock_time_sim": 2292.71}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2296.73s - REAL TIME: 2026-06-25 22:56:16
+================================================================================
+Vehicle A: ID=264, Dir=west->east
+  State=collided, Position=249.67m, Speed=0.0m/s
+  Priority=0.231, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=266, Dir=north->south
+  State=crossing, Position=269.88m, Speed=13.58m/s
+  Priority=0.2303, Yield Locked=False (partner=None)
+  Outcome=PROCEED, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {"267": {"winner_id": 266, "lock_time_sim": 2292.71}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2306.19s - REAL TIME: 2026-06-25 22:56:16
+================================================================================
+Vehicle A: ID=267, Dir=west->east
+  State=moving, Position=236.41m, Speed=16.96m/s
+  Priority=0.2304, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=268, Dir=north->east
+  State=crossing, Position=269.63m, Speed=16.28m/s
+  Priority=0.2303, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2441.58s - REAL TIME: 2026-06-25 22:56:19
+================================================================================
+Vehicle A: ID=284, Dir=east->south
+  State=moving, Position=268.61m, Speed=10.1m/s
+  Priority=0.2305, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=286, Dir=south->west
+  State=crossing, Position=230.01m, Speed=16.98m/s
+  Priority=0.2314, Yield Locked=False (partner=None)
+  Outcome=PROCEED, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {"287": {"winner_id": 286, "lock_time_sim": 2438.26}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1067.45s - REAL TIME: 2026-06-25 22:56:43
+================================================================================
+Vehicle A: ID=87, Dir=north->east
+  State=moving, Position=235.07m, Speed=10.4m/s
+  Priority=0.2308, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=95, Dir=east->south
+  State=crossing, Position=230.21m, Speed=11.7m/s
+  Priority=0.2304, Yield Locked=False (partner=None)
+  Outcome=PROCEED, Has Grant=False
+Active Negotiations: [{"vehicle_a": 95, "vehicle_b": 91, "winner": 95, "yielding": 91, "priority_a": 0.23, "priority_b": 0.32, "age": 5.35}, {"vehicle_a": 95, "vehicle_b": 90, "winner": 95, "yielding": 90, "priority_a": 0.23, "priority_b": 0.31, "age": 5.31}]
+Active Yield Locks: {"91": {"winner_id": 95, "lock_time_sim": 1062.11}, "90": {"winner_id": 95, "lock_time_sim": 1062.14}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 437.75s - REAL TIME: 2026-06-25 22:57:34
+================================================================================
+Vehicle A: ID=42, Dir=east->south
+  State=crossing, Position=250.37m, Speed=10.16m/s
+  Priority=0.2321, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=44, Dir=north->east
+  State=crossing, Position=252.66m, Speed=14.95m/s
+  Priority=0.2328, Yield Locked=False (partner=None)
+  Outcome=PROCEED, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {"43": {"winner_id": 44, "lock_time_sim": 432.9}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1864.09s - REAL TIME: 2026-06-25 22:57:51
+================================================================================
+Vehicle A: ID=177, Dir=west->east
+  State=moving, Position=237.32m, Speed=10.83m/s
+  Priority=0.2305, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=179, Dir=north->west
+  State=crossing, Position=269.41m, Speed=14.81m/s
+  Priority=0.2316, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1878.7s - REAL TIME: 2026-06-25 22:57:51
+================================================================================
+Vehicle A: ID=180, Dir=east->south
+  State=crossing, Position=247.21m, Speed=10.84m/s
+  Priority=0.231, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=181, Dir=south->north
+  State=crossing, Position=249.65m, Speed=16.45m/s
+  Priority=0.233, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 2819.65s - REAL TIME: 2026-06-25 22:58:02
+================================================================================
+Vehicle A: ID=271, Dir=north->east
+  State=moving, Position=233.42m, Speed=17.22m/s
+  Priority=0.2303, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=279, Dir=east->south
+  State=crossing, Position=230.84m, Speed=14.67m/s
+  Priority=0.2306, Yield Locked=False (partner=None)
+  Outcome=PROCEED, Has Grant=False
+Active Negotiations: [{"vehicle_a": 279, "vehicle_b": 272, "winner": 279, "yielding": 272, "priority_a": 0.23, "priority_b": 0.29, "age": 3.72}]
+Active Yield Locks: {"278": {"winner_id": 273, "lock_time_sim": 2808.89}, "272": {"winner_id": 279, "lock_time_sim": 2815.93}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 111.45s - REAL TIME: 2026-06-26 00:03:37
+================================================================================
+Vehicle A: ID=11, Dir=east->west
+  State=exited, Position=252.98m, Speed=11.13m/s
+  Priority=0.2321, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=12, Dir=north->east
+  State=crossing, Position=252.31m, Speed=14.1m/s
+  Priority=0.2324, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 343.83s - REAL TIME: 2026-06-26 00:04:35
+================================================================================
+Vehicle A: ID=34, Dir=west->south
+  State=crossing, Position=252.96m, Speed=10.17m/s
+  Priority=0.2311, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=35, Dir=north->south
+  State=crossing, Position=261.22m, Speed=17.97m/s
+  Priority=0.2314, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 558.64s - REAL TIME: 2026-06-26 00:05:29
+================================================================================
+Vehicle A: ID=55, Dir=south->north
+  State=exited, Position=253.48m, Speed=16.39m/s
+  Priority=0.2301, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=57, Dir=west->south
+  State=crossing, Position=268.28m, Speed=16.73m/s
+  Priority=0.2316, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 560.95s - REAL TIME: 2026-06-26 00:05:29
+================================================================================
+Vehicle A: ID=55, Dir=south->north
+  State=collided, Position=253.48m, Speed=0.0m/s
+  Priority=0.2301, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=56, Dir=south->north
+  State=crossing, Position=233.24m, Speed=16.1m/s
+  Priority=0.2315, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 836.7s - REAL TIME: 2026-06-26 00:06:39
+================================================================================
+Vehicle A: ID=80, Dir=north->west
+  State=exited, Position=247.94m, Speed=10.31m/s
+  Priority=0.2322, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=82, Dir=west->north
+  State=crossing, Position=252.73m, Speed=13.4m/s
+  Priority=0.2309, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1007.44s - REAL TIME: 2026-06-26 00:07:22
+================================================================================
+Vehicle A: ID=99, Dir=east->west
+  State=exited, Position=264.98m, Speed=11.76m/s
+  Priority=0.2316, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=100, Dir=south->east
+  State=crossing, Position=230.74m, Speed=15.72m/s
+  Priority=0.2322, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1699.31s - REAL TIME: 2026-06-26 00:09:41
+================================================================================
+Vehicle A: ID=167, Dir=east->south
+  State=crossing, Position=251.84m, Speed=14.38m/s
+  Priority=0.2306, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=168, Dir=south->north
+  State=crossing, Position=232.35m, Speed=16.69m/s
+  Priority=0.2375, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1797.31s - REAL TIME: 2026-06-26 00:09:47
+================================================================================
+Vehicle A: ID=177, Dir=east->west
+  State=exited, Position=263.04m, Speed=16.8m/s
+  Priority=0.2412, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=178, Dir=south->west
+  State=crossing, Position=230.51m, Speed=17.34m/s
+  Priority=0.2397, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 1934.3s - REAL TIME: 2026-06-26 00:09:55
+================================================================================
+Vehicle A: ID=191, Dir=east->west
+  State=exited, Position=266.79m, Speed=12.39m/s
+  Priority=0.2305, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=193, Dir=south->north
+  State=crossing, Position=236.71m, Speed=15.98m/s
+  Priority=0.2334, Yield Locked=False (partner=None)
+  Outcome=PROCEED, Has Grant=False
+Active Negotiations: [{"vehicle_a": 193, "vehicle_b": 195, "winner": 193, "yielding": 195, "priority_a": 0.23, "priority_b": 0.3, "age": 3.49}, {"vehicle_a": 193, "vehicle_b": 192, "winner": 193, "yielding": 192, "priority_a": 0.23, "priority_b": 0.13, "age": 3.25}, {"vehicle_a": 195, "vehicle_b": 194, "winner": 195, "yielding": 194, "priority_a": 0.34, "priority_b": 0.19, "age": 0.0}]
+Active Yield Locks: {"195": {"winner_id": 193, "lock_time_sim": 1930.81}, "192": {"winner_id": 193, "lock_time_sim": 1931.05}, "194": {"winner_id": 195, "lock_time_sim": 1934.3}}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 3995.31s - REAL TIME: 2026-06-26 00:12:04
+================================================================================
+Vehicle A: ID=376, Dir=west->north
+  State=exited, Position=232.08m, Speed=10.22m/s
+  Priority=0.2339, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=377, Dir=north->south
+  State=crossing, Position=269.72m, Speed=12.63m/s
+  Priority=0.2398, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 4436.3s - REAL TIME: 2026-06-26 00:12:32
+================================================================================
+Vehicle A: ID=429, Dir=north->west
+  State=exited, Position=239.0m, Speed=10.04m/s
+  Priority=0.2324, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=430, Dir=east->north
+  State=crossing, Position=232.63m, Speed=14.16m/s
+  Priority=0.2413, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 6171.31s - REAL TIME: 2026-06-26 00:14:20
+================================================================================
+Vehicle A: ID=631, Dir=west->north
+  State=exited, Position=231.44m, Speed=13.98m/s
+  Priority=0.2339, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=632, Dir=north->south
+  State=crossing, Position=266.71m, Speed=14.76m/s
+  Priority=0.2355, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================
+================================================================================
+COLLISION DIAGNOSTIC EVENT - SIM TIME: 6298.62s - REAL TIME: 2026-06-26 00:14:29
+================================================================================
+Vehicle A: ID=646, Dir=east->west
+  State=exited, Position=262.32m, Speed=10.99m/s
+  Priority=0.2369, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Vehicle B: ID=648, Dir=south->north
+  State=crossing, Position=230.18m, Speed=16.39m/s
+  Priority=0.244, Yield Locked=False (partner=None)
+  Outcome=None, Has Grant=False
+Active Negotiations: []
+Active Yield Locks: {}
+================================================================================

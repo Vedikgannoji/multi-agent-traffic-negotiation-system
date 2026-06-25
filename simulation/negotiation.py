@@ -231,20 +231,25 @@ class NegotiationEngine:
         conflicts = self._detect_conflicts(candidates, intersection)
 
         # ── 6. Resolve each conflict ──────────────────────────────────────────
-        resolved_vehicles = set()  # track which vehicles already got an outcome
+        # We evaluate all conflict pairs. If any conflict results in a vehicle
+        # needing to YIELD, its outcome is set to YIELD. This correctly propagates
+        # yield chains (e.g. A yields to B, B yields to C).
+        current_lock_graph = {yielder_id: info["winner_id"] for yielder_id, info in self.yield_locks.items()}
 
-        # Include already-locked vehicles as resolved (they can't re-negotiate)
-        for v in candidates:
-            if v.v2v_yield_locked:
-                resolved_vehicles.add(v.vehicle_id)
+        def has_path(start_id: int, end_id: int) -> bool:
+            visited = set()
+            curr = start_id
+            while curr in current_lock_graph:
+                if curr in visited:
+                    break
+                visited.add(curr)
+                curr = current_lock_graph[curr]
+                if curr == end_id:
+                    return True
+            return False
 
         for va, vb in conflicts:
             self.negotiations_initiated += 1
-
-            # Skip if either vehicle was already resolved in this tick
-            # (a vehicle can only have one outcome per tick)
-            if va.vehicle_id in resolved_vehicles or vb.vehicle_id in resolved_vehicles:
-                continue
 
             # Higher priority gets PROCEED, lower gets YIELD
             if va.negotiation_priority >= vb.negotiation_priority:
@@ -253,24 +258,31 @@ class NegotiationEngine:
                 winner, loser = vb, va
 
             # Tie-breaking: if priorities are identical, use vehicle ID
-            # (lower ID = higher priority — deterministic)
             if abs(va.negotiation_priority - vb.negotiation_priority) < 0.001:
                 if va.vehicle_id < vb.vehicle_id:
                     winner, loser = va, vb
                 else:
                     winner, loser = vb, va
 
-            winner.negotiation_outcome = "PROCEED"
-            winner.negotiation_partner_id = str(loser.vehicle_id)
+            # Check if making loser yield to winner creates a cycle
+            if has_path(winner.vehicle_id, loser.vehicle_id):
+                # Swap them to avoid cycle!
+                print(f"[V2V-DEADLOCK-PREVENTION] Swapping winner/loser for pair ({va.vehicle_id}, {vb.vehicle_id}) to prevent cycle: {winner.vehicle_id} is already yielding/locked to {loser.vehicle_id}")
+                winner, loser = loser, winner
 
-            loser.negotiation_outcome = "YIELD"
-            loser.negotiation_partner_id = str(winner.vehicle_id)
+            # Loser must yield to winner (overwrite only if not already yielding)
+            if loser.negotiation_outcome != "YIELD":
+                loser.negotiation_outcome = "YIELD"
+                loser.negotiation_partner_id = str(winner.vehicle_id)
+                self.yield_decisions += 1
+                current_lock_graph[loser.vehicle_id] = winner.vehicle_id
 
-            resolved_vehicles.add(winner.vehicle_id)
-            resolved_vehicles.add(loser.vehicle_id)
+            # Winner can proceed, but only if they don't have an overriding YIELD outcome
+            if winner.negotiation_outcome != "YIELD":
+                winner.negotiation_outcome = "PROCEED"
+                winner.negotiation_partner_id = str(loser.vehicle_id)
 
             self.successful_negotiations += 1
-            self.yield_decisions += 1
 
             # Track active negotiation session
             pair_key = frozenset({winner.vehicle_id, loser.vehicle_id})
@@ -364,15 +376,24 @@ class NegotiationEngine:
           - Within NEGOTIATION_RANGE of intersection center
           - Not already crossing, exited, or collided
           - Not holding a grant (reservation system already decided)
+          - Not already crossed/cleared/moving away
         """
         cx = intersection.center_x
         cy = intersection.center_y
         candidates = []
 
         for v in vehicles:
-            # Skip terminal or committed states
+            # Skip terminal or committed states, and already crossed states
             if v.agent_state in (AgentState.CROSSING, AgentState.EXITED,
                                   AgentState.COLLIDED):
+                continue
+
+            # Skip vehicles that have cleared the intersection
+            if getattr(v, "has_exited_intersection", False):
+                continue
+
+            # Skip vehicles that are physically past the center of the intersection
+            if hasattr(v, "is_past_intersection") and v.is_past_intersection(cx, cy):
                 continue
 
             # Skip vehicles with active grants
@@ -413,8 +434,8 @@ class NegotiationEngine:
                 va = candidates[i]
                 vb = candidates[j]
 
-                # Skip if either vehicle is already yield-locked
-                if va.v2v_yield_locked or vb.v2v_yield_locked:
+                # Skip only if BOTH vehicles are already yield-locked
+                if va.v2v_yield_locked and vb.v2v_yield_locked:
                     continue
 
                 # Only cross-corridor pairs conflict

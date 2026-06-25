@@ -674,6 +674,86 @@ class FourWayTrafficManager:
                         self._active_collision_pairs.add(pair)
                         self.total_collisions += 1
 
+                        # ── Capture detailed collision diagnostics ───────────
+                        import json
+                        diag_file = "collision_diagnostics.txt"
+                        
+                        diag_info = {
+                            "timestamp_sim": round(self._sim_time, 2),
+                            "timestamp_real": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                            "vehicle_a": {
+                                "id": va.vehicle_id,
+                                "source": va.route.source,
+                                "destination": va.route.destination,
+                                "position": round(va.position, 2),
+                                "speed": round(va.current_speed, 2),
+                                "agent_state": va.agent_state.value if hasattr(va.agent_state, 'value') else str(va.agent_state),
+                                "priority_score": round(va.negotiation_priority, 4),
+                                "yield_locked": va.v2v_yield_locked,
+                                "yield_partner": va.v2v_yield_partner_id,
+                                "negotiation_outcome": va.negotiation_outcome,
+                                "has_grant": va.vehicle_id in self.intersection.granted_vehicle_ids
+                            },
+                            "vehicle_b": {
+                                "id": vb.vehicle_id,
+                                "source": vb.route.source,
+                                "destination": vb.route.destination,
+                                "position": round(vb.position, 2),
+                                "speed": round(vb.current_speed, 2),
+                                "agent_state": vb.agent_state.value if hasattr(vb.agent_state, 'value') else str(vb.agent_state),
+                                "priority_score": round(vb.negotiation_priority, 4),
+                                "yield_locked": vb.v2v_yield_locked,
+                                "yield_partner": vb.v2v_yield_partner_id,
+                                "negotiation_outcome": vb.negotiation_outcome,
+                                "has_grant": vb.vehicle_id in self.intersection.granted_vehicle_ids
+                            },
+                            "active_negotiations": [
+                                {
+                                    "vehicle_a": data["vehicle_a"],
+                                    "vehicle_b": data["vehicle_b"],
+                                    "winner": data.get("winner"),
+                                    "yielding": data.get("yielding"),
+                                    "priority_a": round(data["priority_a"], 2),
+                                    "priority_b": round(data["priority_b"], 2),
+                                    "age": round(self._sim_time - data["start_time"], 2)
+                                }
+                                for data in self.negotiation_engine.active_negotiations.values()
+                            ],
+                            "yield_locks": {
+                                str(yid): {
+                                    "winner_id": lock["winner_id"],
+                                    "lock_time_sim": round(lock["lock_time"], 2)
+                                }
+                                for yid, lock in self.negotiation_engine.yield_locks.items()
+                            }
+                        }
+
+                        report_lines = [
+                            "=" * 80,
+                            f"COLLISION DIAGNOSTIC EVENT - SIM TIME: {diag_info['timestamp_sim']}s - REAL TIME: {diag_info['timestamp_real']}",
+                            "=" * 80,
+                            f"Vehicle A: ID={diag_info['vehicle_a']['id']}, Dir={diag_info['vehicle_a']['source']}->{diag_info['vehicle_a']['destination']}",
+                            f"  State={diag_info['vehicle_a']['agent_state']}, Position={diag_info['vehicle_a']['position']}m, Speed={diag_info['vehicle_a']['speed']}m/s",
+                            f"  Priority={diag_info['vehicle_a']['priority_score']}, Yield Locked={diag_info['vehicle_a']['yield_locked']} (partner={diag_info['vehicle_a']['yield_partner']})",
+                            f"  Outcome={diag_info['vehicle_a']['negotiation_outcome']}, Has Grant={diag_info['vehicle_a']['has_grant']}",
+                            f"Vehicle B: ID={diag_info['vehicle_b']['id']}, Dir={diag_info['vehicle_b']['source']}->{diag_info['vehicle_b']['destination']}",
+                            f"  State={diag_info['vehicle_b']['agent_state']}, Position={diag_info['vehicle_b']['position']}m, Speed={diag_info['vehicle_b']['speed']}m/s",
+                            f"  Priority={diag_info['vehicle_b']['priority_score']}, Yield Locked={diag_info['vehicle_b']['yield_locked']} (partner={diag_info['vehicle_b']['yield_partner']})",
+                            f"  Outcome={diag_info['vehicle_b']['negotiation_outcome']}, Has Grant={diag_info['vehicle_b']['has_grant']}",
+                            f"Active Negotiations: {json.dumps(diag_info['active_negotiations'])}",
+                            f"Active Yield Locks: {json.dumps(diag_info['yield_locks'])}",
+                            "=" * 80,
+                            ""
+                        ]
+                        report_text = "\n".join(report_lines)
+                        print(report_text)
+                        
+                        try:
+                            with open(diag_file, "a") as f:
+                                f.write(report_text)
+                        except Exception as ex:
+                            print(f"[ERROR] Failed to write collision diagnostics: {ex}")
+
                         for v in (va, vb):
                             v.in_collision            = True
                             v.state                   = VehicleState.COLLIDED
@@ -693,6 +773,9 @@ class FourWayTrafficManager:
 
     def _on_vehicle_exit(self, vehicle: VehicleAgent):
         """Clean up vehicle data when it exits."""
+        # Ensure the vehicle is transitioned to EXITED agent state
+        vehicle.set_agent_state(AgentState.EXITED)
+        
         vid = vehicle.vehicle_id
         self._colliding_ids.discard(vid)
         # Accumulate message metrics
