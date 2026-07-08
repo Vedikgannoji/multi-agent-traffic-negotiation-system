@@ -122,6 +122,17 @@ class VehicleAgent:
         self.v2v_yield_locked = False
         self.v2v_yield_partner_id = None  # ID of the vehicle we are yielding to
 
+        # V2V Conflict-Aware and Reservation properties (Phase 2 Stage 4 refined)
+        self.estimated_entry_time = 0.0
+        self.estimated_exit_time = 0.0
+        self.reservation_state = "NONE"   # "NONE", "CONFIRMED", "COMPLETED"
+        self.reservation_entry_time = 0.0
+        self.reservation_exit_time = 0.0
+        self.yield_hysteresis_timer = 0.0
+        self.conflict_group = []           # List of vehicle IDs in the conflict group
+        self.negotiating_with = []         # List of vehicle IDs currently negotiating with
+        self.reason_for_yield = ""         # Diagnostic yield reasoning
+
     @property
     def speed(self) -> float:
         return self.current_speed
@@ -187,6 +198,10 @@ class VehicleAgent:
         
         if self.agent_state == AgentState.EXITED:
             return
+
+        # Decrement V2V yield hysteresis timer
+        if hasattr(self, 'yield_hysteresis_timer') and self.yield_hysteresis_timer > 0.0:
+            self.yield_hysteresis_timer = max(0.0, self.yield_hysteresis_timer - dt)
 
         # ── V2V Yield Lock: absolute override ─────────────────────────────────
         # When the negotiation engine has locked this vehicle into yielding,
@@ -358,7 +373,11 @@ class VehicleAgent:
                 "corridor": corridor,
                 "has_grant": self.has_grant,
                 "negotiation_priority": self.negotiation_priority,
-                "negotiation_outcome": self.negotiation_outcome
+                "negotiation_outcome": self.negotiation_outcome,
+                "eta": self.estimated_entry_time,
+                "reservation_state": self.reservation_state,
+                "reservation_entry_time": self.reservation_entry_time,
+                "reservation_exit_time": self.reservation_exit_time
             }
             msg = VehicleMessage(
                 sender_id=self.agent_id,

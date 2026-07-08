@@ -35,6 +35,14 @@ class VehicleInterpolator {
         ex.turn_type       = vehicle.turn_type;
         ex.speed           = vehicle.speed;
         ex.colliding       = vehicle.colliding ?? false;
+
+        // V2V variables
+        ex.conflict_group = vehicle.conflict_group;
+        ex.reservation_state = vehicle.reservation_state;
+        ex.eta = vehicle.eta;
+        ex.reserved_time_window = vehicle.reserved_time_window;
+        ex.negotiating_with = vehicle.negotiating_with;
+        ex.reason_for_yield = vehicle.reason_for_yield;
       } else {
         this.vehicles.set(vehicle.id, {
           id: vehicle.id,
@@ -53,6 +61,12 @@ class VehicleInterpolator {
           speed:             vehicle.speed,
           colliding:         vehicle.colliding ?? false,
           lastUpdate:        now,
+          conflict_group:    vehicle.conflict_group,
+          reservation_state: vehicle.reservation_state,
+          eta:               vehicle.eta,
+          reserved_time_window: vehicle.reserved_time_window,
+          negotiating_with:  vehicle.negotiating_with,
+          reason_for_yield:  vehicle.reason_for_yield,
         });
       }
     });
@@ -88,7 +102,13 @@ class VehicleInterpolator {
         destination: v.destination,
         turn_type: v.turn_type, 
         speed: v.speed,
-        colliding: v.colliding ?? false 
+        colliding: v.colliding ?? false,
+        conflict_group: v.conflict_group,
+        reservation_state: v.reservation_state,
+        eta: v.eta,
+        reserved_time_window: v.reserved_time_window,
+        negotiating_with: v.negotiating_with,
+        reason_for_yield: v.reason_for_yield
       });
     }
     return out;
@@ -96,7 +116,7 @@ class VehicleInterpolator {
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
-export default function TrafficSimulation({ backendVehicles, intersectionState, roadInfo, isConnected }) {
+export default function TrafficSimulation({ backendVehicles, intersectionState, roadInfo, isConnected, conflictEdges = [] }) {
   const [vehicles, setVehicles] = useState([]);
   const interpolatorRef = useRef(new VehicleInterpolator());
   const animationFrameRef = useRef(null);
@@ -138,6 +158,7 @@ export default function TrafficSimulation({ backendVehicles, intersectionState, 
             vehicles={vehicles}
             intersection={intersectionState}
             roadInfo={roadInfo}
+            conflictEdges={conflictEdges}
           />
         )}
       </div>
@@ -146,14 +167,26 @@ export default function TrafficSimulation({ backendVehicles, intersectionState, 
 }
 
 // ─── SVG canvas ──────────────────────────────────────────────────────────────
-function IntersectionSVG({ vehicles, intersection, roadInfo }) {
+function IntersectionSVG({ vehicles, intersection, roadInfo, conflictEdges = [] }) {
   const { center_x: cx, center_y: cy, size } = intersection;
+  const [hoveredId, setHoveredId] = useState(null);
   const roadWidth = 54;
   const halfSize  = size / 2;
   const stopOff   = 16;
   const dash      = '8 6';
 
   const isBusy = (intersection.occupancy || 0) >= (intersection.max_occupancy || 2);
+
+  const getCoordinates = (v) => {
+    let x, y;
+    if (v.source === 'north') { x = cx - 13; y = v.position; }
+    else if (v.source === 'south') { x = cx + 13; y = v.position; }
+    else if (v.source === 'east')  { x = v.position; y = cy - 13; }
+    else                           { x = v.position; y = cy + 13; }
+    return { x, y };
+  };
+
+  const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
 
   return (
     <svg viewBox="0 0 500 500" className="sim-svg" preserveAspectRatio="xMidYMid meet">
@@ -188,8 +221,39 @@ function IntersectionSVG({ vehicles, intersection, roadInfo }) {
         strokeWidth="1.5" strokeDasharray="4,4"
       />
 
+      {/* V2V Conflict Edges (Decentralized Coordination Graph Overlay) */}
+      {conflictEdges.map(([id1, id2], idx) => {
+        const v1 = vehicleMap.get(id1);
+        const v2 = vehicleMap.get(id2);
+        if (!v1 || !v2) return null;
+        const p1 = getCoordinates(v1);
+        const p2 = getCoordinates(v2);
+        return (
+          <line
+            key={`edge-${idx}`}
+            x1={p1.x}
+            y1={p1.y}
+            x2={p2.x}
+            y2={p2.y}
+            stroke="#ef4444"
+            strokeWidth="2"
+            strokeDasharray="4,3"
+            opacity="0.85"
+          />
+        );
+      })}
+
       {/* Vehicles */}
-      {vehicles.map(v => <CarShape key={v.id} vehicle={v} cx={cx} cy={cy}/>)}
+      {vehicles.map(v => (
+        <CarShape
+          key={v.id}
+          vehicle={v}
+          cx={cx}
+          cy={cy}
+          onMouseEnter={() => setHoveredId(v.id)}
+          onMouseLeave={() => setHoveredId(null)}
+        />
+      ))}
 
       {/* Direction labels (minimal styling) */}
       <g fill="#94a3b8" fontSize="10" fontWeight="700" letterSpacing="0.8">
@@ -198,12 +262,85 @@ function IntersectionSVG({ vehicles, intersection, roadInfo }) {
         <text x={22} y={cy + 3.5} textAnchor="middle">WEST</text>
         <text x={478} y={cy + 3.5} textAnchor="middle">EAST</text>
       </g>
+
+      {/* HUD Telemetry Tooltip Card */}
+      {hoveredId !== null && vehicleMap.has(hoveredId) && (() => {
+        const v = vehicleMap.get(hoveredId);
+        const p = getCoordinates(v);
+        
+        // Dynamic positioning to prevent card clipping outside SVG viewbox
+        const tx = Math.max(15, Math.min(290, p.x + (v.source === 'east' || v.source === 'west' ? -80 : 20)));
+        const ty = Math.max(15, Math.min(350, p.y - 100));
+
+        const lines = [
+          `Vehicle V${v.id} (${v.source.toUpperCase()} → ${v.destination.toUpperCase()})`,
+          `──────────────────────────────`,
+          `State: ${(v.agent_state || "NONE").toUpperCase()}`,
+          `Speed: ${v.speed ? v.speed.toFixed(1) + ' m/s' : '0.0 m/s'}`,
+          `ETA: ${v.eta !== undefined ? v.eta.toFixed(2) + 's' : 'N/A'}`,
+          `Reservation: ${v.reservation_state || 'NONE'}`,
+          v.reservation_state === 'CONFIRMED' && v.reserved_time_window
+            ? `Window: [${v.reserved_time_window[0].toFixed(2)}s, ${v.reserved_time_window[1].toFixed(2)}s]`
+            : `Window: N/A`,
+          `Conflict Group: [${(v.conflict_group || []).map(id => 'V' + id).join(', ')}]`,
+          `Negotiating: [${(v.negotiating_with || []).map(id => 'V' + id).join(', ')}]`,
+          v.reason_for_yield ? `Yield Reason: ${v.reason_for_yield}` : null
+        ].filter(Boolean);
+
+        const cardWidth = 195;
+        const cardHeight = lines.length * 15 + 12;
+
+        return (
+          <g transform={`translate(${tx}, ${ty})`}>
+            <rect
+              width={cardWidth}
+              height={cardHeight}
+              rx="6"
+              fill="#0f172a"
+              opacity="0.94"
+              stroke="#3b82f6"
+              strokeWidth="1.5"
+              style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }}
+            />
+            {lines.map((line, i) => {
+              let fill = "#e2e8f0";
+              let weight = "normal";
+              if (i === 0) {
+                fill = "#60a5fa";
+                weight = "bold";
+              } else if (line.startsWith("State:")) {
+                if (v.agent_state === 'yielding') fill = "#c084fc";
+                else if (v.agent_state === 'negotiating') fill = "#fbbf24";
+                else if (v.agent_state === 'crossing') fill = "#34d399";
+                else if (v.agent_state === 'waiting') fill = "#f97316";
+              } else if (line.startsWith("Yield Reason:")) {
+                fill = "#f87171";
+              } else if (line.startsWith("Reservation: CONFIRMED")) {
+                fill = "#34d399";
+              }
+              return (
+                <text
+                  key={i}
+                  x="10"
+                  y={18 + i * 15}
+                  fill={fill}
+                  fontSize="9"
+                  fontWeight={weight}
+                  fontFamily="monospace, Courier New"
+                >
+                  {line}
+                </text>
+              );
+            })}
+          </g>
+        );
+      })()}
     </svg>
   );
 }
 
 // ─── Car shape ────────────────────────────────────────────────────────────────
-function CarShape({ vehicle, cx, cy }) {
+function CarShape({ vehicle, cx, cy, onMouseEnter, onMouseLeave }) {
   const { source, position, agent_state, colliding } = vehicle;
 
   let x, y, rotation;
@@ -227,7 +364,12 @@ function CarShape({ vehicle, cx, cy }) {
   const strokeColor = '#ffffff';
 
   return (
-    <g transform={`translate(${x},${y}) rotate(${rotation})`}>
+    <g
+      transform={`translate(${x},${y}) rotate(${rotation})`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      style={{ cursor: 'pointer' }}
+    >
       {/* Sleek Minimalist Car Rect */}
       <rect 
         x="-7" 

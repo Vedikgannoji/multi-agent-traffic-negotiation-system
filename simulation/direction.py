@@ -159,6 +159,14 @@ class RouteConflictMatrix:
         if route1.source == route2.source:
             return False
         
+        # RULE 1.5: Same destination but different sources = conflict (merging)
+        if route1.destination == route2.destination:
+            return True
+        
+        # RULE 1.8: Perpendicular corridors conflict in 1D physics
+        if cls._are_perpendicular(route1.source, route2.source):
+            return True
+        
         # RULE 2: Opposite sources going to same destination = conflict (head-on)
         if (route1.source == Direction.opposite(route2.source) and 
             route1.destination == route2.destination):

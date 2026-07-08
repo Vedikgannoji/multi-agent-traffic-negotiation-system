@@ -530,9 +530,8 @@ class FourWayTrafficManager:
                 front = vehicles[i]
                 rear  = vehicles[i + 1]
 
-                # Skip if either is collided
-                if (front.state == VehicleState.COLLIDED or
-                        rear.state == VehicleState.COLLIDED):
+                # Skip if rear is collided (no control)
+                if rear.state == VehicleState.COLLIDED:
                     continue
 
                 dist = abs(front.position - rear.position)
@@ -787,6 +786,8 @@ class FourWayTrafficManager:
             self.total_yield_duration += vehicle.yielding_duration
             self.completed_yield_count += 1
 
+        # Clean up V2V reservation
+        self.negotiation_engine.confirmed_reservations.pop(vid, None)
         # Clean up yield locks: remove this vehicle's own lock
         self.negotiation_engine.yield_locks.pop(vid, None)
         # Also release any vehicle that was yielding TO this one (winner exited)
@@ -852,6 +853,12 @@ class FourWayTrafficManager:
                 "negotiation_outcome": v.negotiation_outcome,
                 "v2v_yield_locked": v.v2v_yield_locked,
                 "v2v_yield_partner_id": v.v2v_yield_partner_id,
+                "conflict_group": getattr(v, "conflict_group", []),
+                "reservation_state": getattr(v, "reservation_state", "NONE"),
+                "eta": round(getattr(v, "estimated_entry_time", 0.0), 2),
+                "reserved_time_window": [round(getattr(v, "reservation_entry_time", 0.0), 2), round(getattr(v, "reservation_exit_time", 0.0), 2)] if getattr(v, "reservation_state", "NONE") == "CONFIRMED" else None,
+                "negotiating_with": getattr(v, "negotiating_with", []),
+                "reason_for_yield": getattr(v, "reason_for_yield", ""),
             }
             for v in self.vehicles
         ]

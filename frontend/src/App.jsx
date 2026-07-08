@@ -180,6 +180,7 @@ export default function App() {
               intersectionState={simulationState?.intersection || null}
               roadInfo={roadInfo}
               isConnected={isConnected}
+              conflictEdges={simulationState?.conflict_edges || []}
             />
           </div>
           <div className="controls-card">

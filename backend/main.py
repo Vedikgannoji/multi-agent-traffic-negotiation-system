@@ -212,6 +212,7 @@ def get_simulation_state():
         "control": control_status,
         "v2v": v2v_stats,
         "active_negotiations": active_neg_list,
+        "conflict_edges": getattr(manager.negotiation_engine, "conflict_edges", []),
         "v2v_log": manager.negotiation_engine.message_console_log,
         "timestamp": time.time()
     }
